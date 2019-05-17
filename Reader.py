@@ -94,15 +94,27 @@ class Snapshot(object):
                 ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
                 ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
               )
+      if kz[50] == 1 : 
+         record = f.read_record(
+                 numpy.dtype( (numpy.float32,NK)   ) #AS
+                ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
+                ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
+                ,numpy.dtype( (numpy.float32,NTOT) ) #xns
+                ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#x
+                ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#v
+                ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
+                ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
+                ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
+              )
       return record
 
     def _structure(self,record):
         self._parameters["time"] = record[0][0]
         self._parameters["npairs"] = int(record[0][1])
-        self._parameters["rbar"] = int(record[0][2])
-        self._parameters["zmbar"] = int(record[0][3])
-        self._parameters["rtide"] = int(record[0][4])
-        self._parameters["tidal4"] = int(record[0][5])
+        self._parameters["rbar"] = record[0][2]
+        self._parameters["zmbar"] = record[0][3]
+        self._parameters["rtide"] = record[0][4]
+        self._parameters["tidal4"] = record[0][5]
         self._parameters["rdens"] = numpy.array(record[0][6:9])
         self._parameters["ntcr"] = record[0][9] # number of elapsed initial crossing times 
         self._parameters["tscale"] = record[0][10]
@@ -142,26 +154,25 @@ class Snapshot(object):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
             self._stars["mass"] *= self.parameters["zmbar"]*self.n
-            self._stars["x"]    *= self.parameters["rstar"]
-            self._stars["y"]    *= self.parameters["rstar"]
-            self._stars["z"]    *= self.parameters["rstar"]
+            self._stars["x"]    *= self.parameters["rscale"]
+            self._stars["y"]    *= self.parameters["rscale"]
+            self._stars["z"]    *= self.parameters["rscale"]
             self._stars["vx"]   *= self.parameters["vstar"]
             self._stars["vy"]   *= self.parameters["vstar"]
             self._stars["vz"]   *= self.parameters["vstar"]
             self_physcial = True
 
-    def to_physical(self):
+    def to_nbody(self):
         "Make sure stars are in physical units. Transform if not."
         if self._physical :
             self._stars["mass"] /= self.parameters["zmbar"]*self.n
-            self._stars["x"]    /= self.parameters["rstar"]
-            self._stars["y"]    /= self.parameters["rstar"]
-            self._stars["z"]    /= self.parameters["rstar"]
+            self._stars["x"]    /= self.parameters["rscale"]
+            self._stars["y"]    /= self.parameters["rscale"]
+            self._stars["z"]    /= self.parameters["rscale"]
             self._stars["vx"]   /= self.parameters["vstar"]
             self._stars["vy"]   /= self.parameters["vstar"]
             self._stars["vz"]   /= self.parameters["vstar"]
             self_physcial = False
-
 
 def parse_inputfile(inputfilename):
     def parseline(line,resdict,names,dtypes):
@@ -239,7 +250,12 @@ def parse_inputfile(inputfilename):
 
     return result
 
-def read_snapshot(folder,snapshot=1,inputfilename="input",name=None,version="betanb6++",tocenter=False,return_center=False):
+def get_number_of_snapshots(folder):
+    l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"conf.3*") ]
+    l.sort(key=float)
+    return len(l)
+
+def read_snapshot(folder,snapshot=1,inputfilename="input"):
     if folder[-1] != "/" : folder +="/"
     opt = parse_inputfile(folder+"/"+inputfilename)
     kz = opt["KZ"]
