@@ -18,8 +18,8 @@ def executable_options():
     parse_evol = subparsers.add_parser("evol",help="shows the evolution of a parameter")
     parse_evol.set_defaults(fun = Plots.evol )
     parse_evol.add_argument("-p","--parameter",help="paramter to show. Default fbin.",default = "fbin",
-            choices=["fbin"])
-
+            choices=["fbin","lagr"])
+    
     #plot
     parse_evol = subparsers.add_parser("plot",help="plot position[velocity] of stars")
     parse_evol.set_defaults(fun = Plots.plot )

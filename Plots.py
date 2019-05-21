@@ -6,7 +6,7 @@ if r != 0:
 from matplotlib import pyplot
 from matplotlib import animation
 import numpy
-from nbody6tools.Reader import read_snapshot,get_number_of_snapshots
+from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile
 
 def make_animation(folder,output=None,**kw):
     """
@@ -42,6 +42,8 @@ def make_animation(folder,output=None,**kw):
 def evol(folder,output=None,parameter="fbin",**kw):
     if parameter == "fbin":
         p_fbin(folder,**kw)
+    elif parameter == "lagr":
+        p_lagr(folder,**kw)
 
     if output is None:
         pyplot.show()
@@ -80,7 +82,6 @@ def plot(folder,output=None,snapshot=1,projection="xy",space="position",ax=pyplo
         pyplot.savefig(output)
     return
 
-
 def p_fbin(folder,ax = pyplot.gca(),**kw):
     """ Plot binary fractions using file global.30
         This means shows only the regularized binaries
@@ -97,4 +98,29 @@ def p_fbin(folder,ax = pyplot.gca(),**kw):
     ax.set_xlabel("time [Myr]")
     ax.plot(t, np/(ns+np), "-")
 
+def p_lagr(folder,ax = pyplot.gca(),kind="lagr",inputfile="input",
+        #mass_fractions = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+        mass_fractions = [0.01,0.1,0.5,1.0]
+        ,**kw):
+    """ Plots the lagrangian radii from lagr.7 file. Requires KZ(7) >= 3 """
+    opt = parse_inputfile(folder+inputfile)
+    if opt["KZ"][7] < 3:
+        raise("ERROR: No lagr.7 file. KZ(7)<3 in inputfile")
+    lind = []
+    if kind == "lagr" :
+        lind = list(range(1,19)) 
+    data = numpy.loadtxt(folder+"lagr.7",skiprows=2).T
+    header = open(folder+"lagr.7","r").readlines()[1].split()
+    mfs = [ "%.2E"%m for m in mass_fractions ] 
+    ylabel = "log(r) for "
+    time = data[0]
 
+    j = 0
+    for i in  lind :
+        if header[i] in mfs :
+            if j > 0 : ylabel+=", "
+            ylabel+=" %.0f%%"%(mass_fractions[j]*100)
+            ax.plot(time,numpy.log10(data[i]*opt["RBAR"]),"-k",lw=0.5)
+            j+=1
+    ax.set_ylabel(ylabel)
+    #ax.set_xscale("log")
