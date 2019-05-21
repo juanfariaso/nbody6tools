@@ -77,6 +77,7 @@ class Snapshot(object):
         """
         return self._physical
 
+
     def _read_snapshot(self,name):
       kz = self.inputfile["KZ"]
       f = FortranFile(name,"r")
@@ -153,6 +154,7 @@ class Snapshot(object):
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
+            print("to physical")
             self._stars["mass"] *= self.parameters["zmbar"]*self.n
             self._stars["x"]    *= self.parameters["rscale"]
             self._stars["y"]    *= self.parameters["rscale"]
@@ -160,7 +162,9 @@ class Snapshot(object):
             self._stars["vx"]   *= self.parameters["vstar"]
             self._stars["vy"]   *= self.parameters["vstar"]
             self._stars["vz"]   *= self.parameters["vstar"]
-            self_physcial = True
+            self._physical = True
+            print(self.physical)
+            print(self._physical)
 
     def to_nbody(self):
         "Make sure stars are in physical units. Transform if not."
@@ -172,7 +176,7 @@ class Snapshot(object):
             self._stars["vx"]   /= self.parameters["vstar"]
             self._stars["vy"]   /= self.parameters["vstar"]
             self._stars["vz"]   /= self.parameters["vstar"]
-            self_physcial = False
+            self._physical = False
 
 def parse_inputfile(inputfilename):
     def parseline(line,resdict,names,dtypes):
