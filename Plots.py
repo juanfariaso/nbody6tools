@@ -19,19 +19,28 @@ def make_animation(folder,output=None,**kw):
 
     def update_line(num,line, folder):
             sn = read_snapshot(folder,num+1)
+            sn.to_physical()
             x = sn.stars["x"]
             y = sn.stars["y"]
-            line.set_data(x,y)
+            s = sn.stars["mass"]/500
+            line.set_offsets(numpy.c_[x,y])
+            line.set_sizes(s)
+            #title.set_text('Time %.2f Myr'%(sn.parameters["time"]*sn.parameters["tscale"] ) )
             return line,
+    opt = parse_inputfile(folder+"input")
 
     nsnap = get_number_of_snapshots(folder)
     fig1 = pyplot.gcf()
-
     data = numpy.random.rand(2, 25)
-    l, = pyplot.plot([], [], 'k.')
-    pyplot.xlim(-10, 10)
-    pyplot.ylim(-10, 10)
-    pyplot.title('test')
+    l = pyplot.scatter([],[],[],c="k",alpha=0.8)
+    size = opt["RBAR"]
+    pyplot.xlim(-10*size, 10*size)
+    pyplot.ylim(-10*size, 10*size)
+    pyplot.xlabel("x (pc)")
+    pyplot.ylabel("y (pc)")
+    ax = pyplot.gca()
+    ax.set_aspect("equal")
+    #title = ax.set_title("Time : %.2f"%0.0) #not working
     movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,folder),
                                        interval=10, blit=True)
     if output is None :

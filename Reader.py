@@ -129,7 +129,7 @@ class Snapshot(object):
         self._parameters["vc"] = record[0][14]
         self._parameters["rhom"] = record[0][15]
         self._parameters["cmax"] = record[0][16]
-        self._parameters["rscale"] = record[0][17]
+        self._parameters["rscale"] = record[0][17] #half mass radius
         self._parameters["rsmin"] = record[0][18]
         self._parameters["dmin1"] = record[0][19]
 
@@ -159,9 +159,9 @@ class Snapshot(object):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
             self._stars["mass"] *= self.parameters["zmbar"]*self.n
-            self._stars["x"]    *= self.parameters["rscale"]
-            self._stars["y"]    *= self.parameters["rscale"]
-            self._stars["z"]    *= self.parameters["rscale"]
+            self._stars["x"]    *= self.parameters["rbar"]
+            self._stars["y"]    *= self.parameters["rbar"]
+            self._stars["z"]    *= self.parameters["rbar"]
             self._stars["vx"]   *= self.parameters["vstar"]
             self._stars["vy"]   *= self.parameters["vstar"]
             self._stars["vz"]   *= self.parameters["vstar"]

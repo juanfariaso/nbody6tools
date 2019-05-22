@@ -23,11 +23,11 @@ def get_velocity_dispersion(stars,direction = "average"):
         sy = numpy.std(stars["vy"])
         sz = numpy.std(stars["vz"])
         return (sx+sy+sz)/3.0
-    else if direction == "x" : 
-        return numpy.std(stars["vx"]
-    else if direction == "y" : 
-        return numpy.std(stars["vy"]
-    else if direction == "z" : 
-        return numpy.std(stars["vz"]
+    elif direction == "x" : 
+        return numpy.std(stars["vx"])
+    elif direction == "y" : 
+        return numpy.std(stars["vy"])
+    elif direction == "z" : 
+        return numpy.std(stars["vz"])
 
 
