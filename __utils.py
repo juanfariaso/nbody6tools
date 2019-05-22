@@ -10,6 +10,7 @@ def executable_options():
     parser.add_argument("folder",help="simulation folder", default="./") 
     ##common options
     options.add_argument("-o","--output",help="output file. Default shows without saving", default=None) 
+
     #animate
     parse_animate = subparsers.add_parser("animate",help="shows animation of simulation, may be slow in big clusters.")
     parse_animate.set_defaults(fun = Plots.make_animation )

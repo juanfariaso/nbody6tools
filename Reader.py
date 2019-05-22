@@ -15,8 +15,12 @@ class Snapshot(object):
       self.npairs          : Number of regularized binaries
       self.physical        : Units of the star set True : Msun,parsec,km/s ; False nbody-units: 
 
-      self.to_physcal()    : Transform stars to physical units (Msun,pc,kms)
-      self.to_nbody()      : Transform stars to nbody units
+      Methods: 
+      self.to_physcal()     : Transform stars to physical units (Msun,pc,kms)
+      self.to_nbody()       : Transform stars to nbody units
+
+      self.to_center(center): Move stars to the specified center. If not specified, use the center of density calculated by Nbody6
+      self.reorder(isort)   : Sort stars according to the 'isort' list (e.g. result of numpy.argsort(). If nothing specified, sort by name.
     """
 
     def __init__(self,snapshotfile,inputfile) :
@@ -154,7 +158,6 @@ class Snapshot(object):
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
-            print("to physical")
             self._stars["mass"] *= self.parameters["zmbar"]*self.n
             self._stars["x"]    *= self.parameters["rscale"]
             self._stars["y"]    *= self.parameters["rscale"]
@@ -163,8 +166,6 @@ class Snapshot(object):
             self._stars["vy"]   *= self.parameters["vstar"]
             self._stars["vz"]   *= self.parameters["vstar"]
             self._physical = True
-            print(self.physical)
-            print(self._physical)
 
     def to_nbody(self):
         "Make sure stars are in physical units. Transform if not."
@@ -177,6 +178,27 @@ class Snapshot(object):
             self._stars["vy"]   /= self.parameters["vstar"]
             self._stars["vz"]   /= self.parameters["vstar"]
             self._physical = False
+
+    def to_center(self,center=None):
+        """ Move stars to the specified center. If not specified, use the
+            center of density calculated by Nbody6
+        """
+        if center is None:
+            center = self.parameters["rdens"]
+        self.stars["x"] -= center[0]
+        self.stars["y"] -= center[1]
+        self.stars["z"] -= center[2]
+        self.parameters["rdens"][0] -= center[0]
+        self.parameters["rdens"][1] -= center[1]
+        self.parameters["rdens"][2] -= center[2]
+
+    def reorder(self,isort=None):
+        """ Sort stars according to the isort list (e.g. result of numpy.argsort(). If nothing specified, sort by name. """
+        if isort is None:
+           isort = numpy.argsort(self.stars["name"])
+
+        for key in self.stars.keys():
+           self.stars[key] = self.stars[key][isort]
 
 def parse_inputfile(inputfilename):
     def parseline(line,resdict,names,dtypes):

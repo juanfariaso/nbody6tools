@@ -25,7 +25,7 @@ def make_animation(folder,output=None,**kw):
             return line,
 
     nsnap = get_number_of_snapshots(folder)
-    fig1 = pyplot.figure()
+    fig1 = pyplot.gcf()
 
     data = numpy.random.rand(2, 25)
     l, = pyplot.plot([], [], 'k.')
@@ -103,7 +103,12 @@ def p_lagr(folder,ax = pyplot.gca(),kind="lagr",inputfile="input",
         mass_fractions = [0.01,0.1,0.5,1.0]
         ,**kw):
     """ Plots the lagrangian radii from lagr.7 file. Requires KZ(7) >= 3 """
-    opt = parse_inputfile(folder+inputfile)
+
+    #opt = parse_inputfile(folder+inputfile)
+    sn = read_snapshot(folder)
+    opt = sn.inputfile
+    tscale = sn.parameters["tscale"]
+
     if opt["KZ"][7] < 3:
         raise("ERROR: No lagr.7 file. KZ(7)<3 in inputfile")
     lind = []
@@ -120,7 +125,8 @@ def p_lagr(folder,ax = pyplot.gca(),kind="lagr",inputfile="input",
         if header[i] in mfs :
             if j > 0 : ylabel+=", "
             ylabel+=" %.0f%%"%(mass_fractions[j]*100)
-            ax.plot(time,numpy.log10(data[i]*opt["RBAR"]),"-k",lw=0.5)
+            ax.plot(time*tscale,numpy.log10(data[i]*opt["RBAR"]),"-k",lw=0.5)
             j+=1
     ax.set_ylabel(ylabel)
+    ax.set_xlabel("time (Myr)")
     #ax.set_xscale("log")
