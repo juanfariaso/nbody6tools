@@ -8,7 +8,7 @@ from matplotlib import animation
 import numpy
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile
 
-def make_animation(folder,output=None,xy="xy",**kw):
+def make_animation(folder,output=None,xy="xy",fps=10,**kw):
     """
     Quick animation of the simulation
     If output is given animation is saved in that file.
@@ -25,6 +25,7 @@ def make_animation(folder,output=None,xy="xy",**kw):
             s = sn.stars["mass"]/500
             line.set_offsets(numpy.c_[x,y])
             line.set_sizes(s)
+            #print("snapshot: ", num) #TODO: Put nice progress info
             #title.set_text('Time %.2f Myr'%(sn.parameters["time"]*sn.parameters["tscale"] ) )
             return line,
     opt = parse_inputfile(folder+"input")
@@ -46,7 +47,7 @@ def make_animation(folder,output=None,xy="xy",**kw):
     if output is None :
         pyplot.show()
     else:
-        movie.save(output)
+        movie.save(output,fps=fps)
 
 def evol(folder,output=None,parameter="fbin",**kw):
     if parameter == "fbin":

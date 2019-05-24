@@ -14,6 +14,7 @@ def executable_options():
     #animate
     parse_animate = subparsers.add_parser("animate",help="shows animation of simulation, may be slow in big clusters.")
     parse_animate.set_defaults(fun = Plots.make_animation )
+    parse_animate.add_argument("--fps",help = "frames per second if an output file is given",default=10)
     parse_animate.add_argument("--xy",help="Projection of animation. Default 'xy'",default = "xy",
             choices=["xy","yx","xz","zx","yz","zy"])
 
