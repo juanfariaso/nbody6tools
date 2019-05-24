@@ -8,7 +8,7 @@ from matplotlib import animation
 import numpy
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile
 
-def make_animation(folder,output=None,**kw):
+def make_animation(folder,output=None,xy="xy",**kw):
     """
     Quick animation of the simulation
     If output is given animation is saved in that file.
@@ -20,8 +20,8 @@ def make_animation(folder,output=None,**kw):
     def update_line(num,line, folder):
             sn = read_snapshot(folder,num+1)
             sn.to_physical()
-            x = sn.stars["x"]
-            y = sn.stars["y"]
+            x = sn.stars[xy[0]]
+            y = sn.stars[xy[1]]
             s = sn.stars["mass"]/500
             line.set_offsets(numpy.c_[x,y])
             line.set_sizes(s)
@@ -36,8 +36,8 @@ def make_animation(folder,output=None,**kw):
     size = opt["RBAR"]
     pyplot.xlim(-10*size, 10*size)
     pyplot.ylim(-10*size, 10*size)
-    pyplot.xlabel("x (pc)")
-    pyplot.ylabel("y (pc)")
+    pyplot.xlabel( "%s (pc)"%xy[0] )
+    pyplot.ylabel( "%s (pc)"%xy[1] )
     ax = pyplot.gca()
     ax.set_aspect("equal")
     #title = ax.set_title("Time : %.2f"%0.0) #not working
