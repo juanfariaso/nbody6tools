@@ -10,11 +10,11 @@ def get_mass_radius(stars,fraction=0.5,direction="average"):
     if direction == "average" :
         r = numpy.sqrt(stars["x"]**2 + stars["y"]**2 + stars["z"]**2)
     elif direction == "x":
-        r = numpy.abs(stars["x"])
+        r = numpy.abs(stars["x"]) * numpy.sqrt(3.0)
     elif direction == "y":
-        r = numpy.abs(stars["y"])
+        r = numpy.abs(stars["y"]) * numpy.sqrt(3.0)
     elif direction == "z":
-        r = numpy.abs(stars["z"])
+        r = numpy.abs(stars["z"]) * numpy.sqrt(3.0)
 
     isort  = numpy.argsort(r)
     csum = numpy.cumsum(stars["mass"][isort])

@@ -17,6 +17,7 @@ def executable_options():
     parse_animate.add_argument("--fps",help = "frames per second if an output file is given",default=10)
     parse_animate.add_argument("--xy",help="Projection of animation. Default 'xy'",default = "xy",
             choices=["xy","yx","xz","zx","yz","zy"])
+    parse_animate.add_argument("--dpi",help="dpi for animated output. Default 'None'",default = None)
 
     #evol
     parse_evol = subparsers.add_parser("evol",help="shows the evolution of a parameter")
