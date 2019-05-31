@@ -1,0 +1,21 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module Qparameter ! in 
+    interface  ! in :Qparameter
+        subroutine qparameter(x,y,z,nstr,qpar,sigma,average,zeroaxis,rmax) ! in :Qparameter:Qparameter.f90
+            real dimension(nstr),intent(in) :: x
+            real dimension(nstr),intent(in),depend(nstr) :: y
+            real dimension(nstr),intent(in),depend(nstr) :: z
+            integer, optional,intent(in),check(len(x)==nstr),depend(x) :: nstr=len(x)
+            logical intent(in) :: average
+            integer intent(in) :: zeroaxis
+            real intent(in) :: rmax
+            real intent(out) :: qpar
+            real intent(out) :: sigma
+        end subroutine qparameter
+    end interface 
+end python module Qparameter
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
