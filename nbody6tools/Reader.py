@@ -75,6 +75,12 @@ class Snapshot(object):
         return self._n
 
     @property
+    def time(self):
+        """ Time of snapshot
+        """
+        return self._time
+
+    @property
     def physical(self):
         """ bool, True : stars are in phycial units: Msun, parsec, km/s
               False: stars are in code units
@@ -153,6 +159,8 @@ class Snapshot(object):
         self._stars["vy"] = X[1,:][mask]
         self._stars["vz"] = X[2,:][mask]
         self._stars["name"] = record[7][mask]
+
+        self._time = self._parameters["time"]
         self._physical = False
 
     def to_physical(self):
@@ -165,6 +173,7 @@ class Snapshot(object):
             self._stars["vx"]   *= self.parameters["vstar"]
             self._stars["vy"]   *= self.parameters["vstar"]
             self._stars["vz"]   *= self.parameters["vstar"]
+            self._time *= self.parameters["tscale"]
             self._physical = True
 
     def to_nbody(self):
@@ -177,6 +186,7 @@ class Snapshot(object):
             self._stars["vx"]   /= self.parameters["vstar"]
             self._stars["vy"]   /= self.parameters["vstar"]
             self._stars["vz"]   /= self.parameters["vstar"]
+            self._time /= self.parameters["tscale"]
             self._physical = False
 
     def to_center(self,center=None):
@@ -279,16 +289,20 @@ def parse_inputfile(inputfilename):
 def get_number_of_snapshots(folder):
     l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"conf.3*") ]
     l.sort(key=float)
+    if len(l) == 0:
+        raise ValueError("No snapshots in this folder.")
     return len(l)
 
-def read_snapshot(folder,snapshot=1,inputfilename="input"):
+def read_snapshot(folder,snapshot=0,inputfilename="input"):
     if folder[-1] != "/" : folder +="/"
     opt = parse_inputfile(folder+"/"+inputfilename)
     kz = opt["KZ"]
    
     l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"conf.3*") ]
     l.sort(key=float)
+    if len(l) == 0:
+        raise ValueError("No snapshots in this folder.")
 
-    snapshotfile ="%s/conf.3_%s"%(folder,l[snapshot-1])
+    snapshotfile ="%s/conf.3_%s"%(folder,l[snapshot])
     inputfile ="%s/%s"%(folder,inputfilename)
     return Snapshot(snapshotfile,inputfile)

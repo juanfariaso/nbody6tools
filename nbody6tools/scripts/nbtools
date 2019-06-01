@@ -2,7 +2,9 @@
 import sys
 from optparse import OptionParser
 from argparse import ArgumentParser
-from nbody6tools import Plots
+from inspect import getmembers, isfunction
+
+from nbody6tools import Plots,Analyse
 
 def executable_options():
     parser = ArgumentParser()
@@ -32,13 +34,27 @@ def executable_options():
     parse_evol.set_defaults(fun = Plots.plot )
     parse_evol.add_argument("-s","--space",help="space to plot. Default position.",default = "position",
             choices=["position","velocity"])
+
+    #compute
+    parse_compute = subparsers.add_parser("compute",help="Calculate a parameter over time and write result in output.") 
+    parse_compute.set_defaults(fun = Analyse.compute)
+    available_functions = [ o[0] for o in getmembers(Analyse) if (isfunction(o[1]) and o[1].__module__ == "nbody6tools.Analyse") ]
+    available_functions.remove("compute")
+    parse_compute.add_argument("function",
+            help="function to evaluate (Defined in Analyse module)",default = None,
+            choices=available_functions)
+    parse_compute.add_argument("-a","--arguments",metavar="arg=value",type=str,nargs="+",
+            help = "extra arguments to be passed to function. value can only be numbers for now.")
+    parse_compute.add_argument("--doc",action="store_true",
+            help="show documentation of function")
+    parse_compute.add_argument("--overwrite",action="store_true",
+            help="if specified, overwrite output. Else raise error if file exists.")
     return parser
    
 def execute_actions(args) :
     args.fun(**vars(args))
 
 if __name__ == '__main__':
-
     parser = executable_options()
     args = parser.parse_args()
 
