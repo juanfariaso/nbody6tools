@@ -64,13 +64,15 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     extra arguments:
     average : if 1 average the three projections. Default: 1
     zeroaxis: if average=0, will set the axis which position will be taken as zero. keys are: 1-> x ; 2-> y, 3-> z
-    rmax    : Mass fraction radius to use for normalization Default : 0.9
+    rmax    : Mass fraction radius to use as maximum. Default : 0.9
     
     returns "mean Qparameter","standard error of mean"
     """
-    snapshot.to_physical()
+    #snapshot.to_physical() #unnesessary
     rmax = Utilities.get_mass_radius(snapshot.stars,rmax)
     x = snapshot.stars["x"]
     y = snapshot.stars["y"]
     z = snapshot.stars["z"]
-    return qparameter(x,y,z,int(average),int(zeroaxis),rmax)
+    r = numpy.sqrt(x**2+y**2+z**2)
+    mask =  r < rmax
+    return qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
