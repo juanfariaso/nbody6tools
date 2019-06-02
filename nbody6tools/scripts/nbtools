@@ -43,7 +43,7 @@ def executable_options():
     parse_compute.add_argument("function",
             help="function to evaluate (Defined in Analyse module)",default = None,
             choices=available_functions)
-    parse_compute.add_argument("-a","--arguments",metavar="arg=value",type=str,nargs="+",
+    parse_compute.add_argument("-a","--arguments",dest="args",metavar="arg=value",type=str,nargs="+",
             help = "extra arguments to be passed to function. value can only be numbers for now.")
     parse_compute.add_argument("--doc",action="store_true",
             help="show documentation of function")

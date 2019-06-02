@@ -2,6 +2,8 @@ from nbody6tools.Reader import read_snapshot,get_number_of_snapshots
 from nbody6tools.ext import qparameter
 from nbody6tools import Utilities
 
+import numpy
+
 local_variables = locals()
 
 def compute(folder,function,args="",output=None,overwrite=False,fmt = "%10.7g",doc=False,**kw):
@@ -28,13 +30,12 @@ def compute(folder,function,args="",output=None,overwrite=False,fmt = "%10.7g",d
     #parse the extra arguments if any
     kwargs = dict()
     for s in args:
-        k,v=s.split()
+        k,v=s.split("=")
         try :
             kwargs[k] = float(v)
         except ValueError:
             raise("Can only use float arguments for now")
 
-    #print(kwargs,args)
     ns = get_number_of_snapshots(folder)
     if output is None:
         output =  function.__name__+".dat"
@@ -42,7 +43,9 @@ def compute(folder,function,args="",output=None,overwrite=False,fmt = "%10.7g",d
     mode = "w" if overwrite else "wx"
     resultfile =  open(output,mode,1)   #fail if already exists for safety
 
-    resultfile.write("# time   time[Myr]    \n")
+    resultfile.write("# function %s with extra arguments: %s \n"%(
+        function.__name__,str(args) ) )
+    resultfile.write("# time   time[Myr]  results  \n")
     for i in range(ns):
         print("Snapshot: %i/%i    "%(i,ns))
         sn = read_snapshot(folder,i,inputfilename="input")
