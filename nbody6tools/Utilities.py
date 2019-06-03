@@ -15,10 +15,13 @@ def get_mass_radius(stars,fraction=0.5,direction="average"):
         r = numpy.abs(stars["y"]) * numpy.sqrt(3.0)
     elif direction == "z":
         r = numpy.abs(stars["z"]) * numpy.sqrt(3.0)
-
     isort  = numpy.argsort(r)
+
+    if mcut < stars["mass"][isort[0]]:
+        return r[isort[0]]
+
     csum = numpy.cumsum(stars["mass"][isort])
-    rh = r[isort][numpy.where(csum >= mcut)[0][0]]
+    rh = r[isort][numpy.where(csum <= mcut)[0][-1]]
     return rh
 
 def get_velocity_dispersion(stars,direction = "average"):

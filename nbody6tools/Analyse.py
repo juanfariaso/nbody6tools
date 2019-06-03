@@ -6,7 +6,7 @@ import numpy
 
 local_variables = locals()
 
-def compute(folder,function,args="",output=None,overwrite=False,fmt = "%10.7g",doc=False,**kw):
+def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g",doc=False,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
@@ -15,7 +15,8 @@ def compute(folder,function,args="",output=None,overwrite=False,fmt = "%10.7g",d
                         a snapshot object as input and return
                         a tuple of the resulting values (if more than one)
     args                   : extra arguments (list of strings like: ['arg1=value']
-                             'value' can only be floats.
+                             'value' can only floats. comma sepparated arguments will be used as lists
+                             e.g. 'arg1=1.0,2,3.0,4' is interpreted as 'arg1 = [1.0,2.0,3.0,4.0]'
     output                 : output file with results. Default 'function_name'.dat is given.
     overwrite              : if False raise Error if output file exists. Otherwise overwrite. Default: True
     fmt                    : format for numbers in columns. Default: '%10.7g' 
@@ -29,12 +30,18 @@ def compute(folder,function,args="",output=None,overwrite=False,fmt = "%10.7g",d
 
     #parse the extra arguments if any
     kwargs = dict()
-    for s in args:
-        k,v=s.split("=")
-        try :
-            kwargs[k] = float(v)
-        except ValueError:
-            raise("Can only use float arguments for now")
+    if args is not None:
+        for s in args:
+            k,v=s.split("=")
+            try :
+                if "," in v:
+                    #list case
+                    kwargs[k] = [float(val) for val in v.split(",")]
+                else:
+                    #single float case
+                    kwargs[k] = float(v)
+            except ValueError:
+                raise("arg can only be a float or comma separated floats")
 
     ns = get_number_of_snapshots(folder)
     if output is None:
@@ -79,3 +86,17 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     r = numpy.sqrt(x**2+y**2+z**2)
     mask =  r < rmax
     return qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
+
+def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
+    """
+    Custom Lagrangian radii calculation.
+    extra arguments:
+    mfrac : list of lagrangian radii to calculate
+            default: 0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0
+
+    """
+    result = []
+    for fr in mfrac:
+        result.append(Utilities.get_mass_radius(snapshot.stars,fraction=fr) )
+    return result
+
