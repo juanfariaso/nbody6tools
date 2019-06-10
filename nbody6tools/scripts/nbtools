@@ -9,15 +9,15 @@ from nbody6tools import Plots,Analyse
 def executable_options():
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(help='Available Commands')
-    options = parser.add_argument_group("options")
 
-    parser.add_argument("folder",help="simulation folder", default="./") 
-    ##common options
-    options.add_argument("-o","--output",help="output file. Default shows without saving", default=None) 
+    parser.add_argument("folder",metavar="FOLDER",help="simulation folder", default="./") 
+    parser.add_argument("-o","--output",help="output file. Default shows without saving", default=None) 
 
     #animate
     parse_animate = subparsers.add_parser("animate",help="shows animation of simulation, may be slow in big clusters.")
     parse_animate.set_defaults(fun = Plots.make_animation )
+    parse_animate.add_argument("--boxsize",default = None, type = float,
+            help="Size of the box in parsecs. Default: 10 initial half mass radius")
     parse_animate.add_argument("--fps",help = "frames per second if an output file is given",default=10)
     parse_animate.add_argument("--xy",help="Projection of animation. Default 'xy'",default = "xy",
             choices=["xy","yx","xz","zx","yz","zy"])
@@ -49,6 +49,7 @@ def executable_options():
             help="show documentation of function")
     parse_compute.add_argument("--overwrite",action="store_true",
             help="if specified, overwrite output. Else raise error if file exists.")
+
     return parser
    
 def execute_actions(args) :

@@ -41,4 +41,3 @@ def get_velocity_dispersion(stars,direction = "average"):
     elif direction == "z" : 
         return numpy.std(stars["vz"])
 
-

@@ -8,7 +8,7 @@ from matplotlib import animation
 import numpy
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile
 
-def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,**kw):
+def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,**kw):
     """
     Quick animation of the simulation
     If output is given animation is saved in that file.
@@ -18,7 +18,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,**kw):
     ##      - make it look better, but make sure is fast.
 
     def update_line(num,line, folder):
-            sn = read_snapshot(folder,num+1)
+            sn = read_snapshot(folder,num)
             sn.to_physical()
             x = sn.stars[xy[0]]
             y = sn.stars[xy[1]]
@@ -29,14 +29,16 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,**kw):
             #title.set_text('Time %.2f Myr'%(sn.parameters["time"]*sn.parameters["tscale"] ) )
             return line,
     opt = parse_inputfile(folder+"input")
-
     nsnap = get_number_of_snapshots(folder)
     fig1 = pyplot.gcf()
-    data = numpy.random.rand(2, 25)
     l = pyplot.scatter([],[],[],c="k",alpha=0.8)
-    size = opt["RBAR"]
-    pyplot.xlim(-10*size, 10*size)
-    pyplot.ylim(-10*size, 10*size)
+    if boxsize is None:
+        size = 10*opt["RBAR"]
+    else:
+        size = boxsize/2.0
+    pyplot.xlim(-size, size)
+    pyplot.ylim(-size, size)
+
     pyplot.xlabel( "%s (pc)"%xy[0] )
     pyplot.ylabel( "%s (pc)"%xy[1] )
     ax = pyplot.gca()

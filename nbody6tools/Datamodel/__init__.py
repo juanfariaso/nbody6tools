@@ -4,6 +4,8 @@ from scipy.io import FortranFile
 import os
 import glob
 
+from ._ParticleMethods  import Methods
+
 def parse_inputfile(inputfilename,**kw):
     """
     parse Nbody6 inputfile 'inputfilename' into a dictionary.
@@ -103,7 +105,7 @@ class Snapshot(object):
       self.to_physcal()     : Transform stars to physical units (Msun,pc,kms)
       self.to_nbody()       : Transform stars to nbody units
 
-      self.to_center(center): Move stars to the specified center. If not specified, use the center of density calculated by Nbody6
+      self.to_center(center): Move stars to the specified center. If not specified, use the center of density calculated by Nbody6 #not working
       self.reorder(isort)   : Sort stars according to the 'isort' list (e.g. result of numpy.argsort(). If nothing specified, sort by name.
     """
 
@@ -244,7 +246,7 @@ class Snapshot(object):
         stars_dict["vy"] = X[1,:][mask]
         stars_dict["vz"] = X[2,:][mask]
 
-        self.__stars = Particles(stars_dict)
+        self.__stars = Particles(stars_dict,center=self.parameters["rdens"])
 
         self._time = self.__parameters["time"]
         self._physical = False
@@ -252,7 +254,7 @@ class Snapshot(object):
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
-            self.__stars.mass *= self.parameters["zmbar"]*self.n
+            self.__stars.mass *= self.parameters["zmbar"]
             self.__stars.x    *= self.parameters["rbar"]
             self.__stars.y    *= self.parameters["rbar"]
             self.__stars.z    *= self.parameters["rbar"]
@@ -265,7 +267,7 @@ class Snapshot(object):
     def to_nbody(self):
         "Make sure stars are in physical units. Transform if not."
         if self._physical :
-            self.__stars.mass /= self.parameters["zmbar"]*self.n
+            self.__stars.mass /= self.parameters["zmbar"]
             self.__stars.x    /= self.parameters["rscale"]
             self.__stars.y    /= self.parameters["rscale"]
             self.__stars.z    /= self.parameters["rscale"]
@@ -287,6 +289,7 @@ class Snapshot(object):
         self.parameters["rdens"][0] -= center[0]
         self.parameters["rdens"][1] -= center[1]
         self.parameters["rdens"][2] -= center[2]
+        self.stars.__center = center
 
     def reorder(self,isort=None):
         """ Sort stars according to the isort list (e.g. result of numpy.argsort(). If nothing specified, sort by name. """
@@ -297,13 +300,13 @@ class Snapshot(object):
            self.stars[key] = self.stars[key][isort]
 
 
-class Particles(object):
+class Particles(Methods,object):
     """
     Object to store and manipulate set of particles.
     This object is not supposed to be used by itself, but
     wrapped by the Snapshot object.
     """
-    def __init__(self,stars_dict):
+    def __init__(self,stars_dict,center=[0,0,0]):
         self.__n = len(stars_dict["name"]) #must be first parameter to be setted
         self.__data = stars_dict
         l=[]
@@ -314,6 +317,18 @@ class Particles(object):
 
         self.__sanity_check()
         self.__index = 0
+        self.__center = numpy.array(center)
+
+    @property
+    def center(self):
+        return self.__center
+
+    def set_center(self,center):
+        print("setting center",center)
+        if len(center) == 3:
+            self.__center = numpy.array(center,dtype=numpy.float32)
+        else:
+            raise ValueError("Particles center must have length 3")
 
     def __sanity_check(self):
         l=[]
@@ -357,11 +372,11 @@ class Particles(object):
             raise KeyError("%s not in storage"%index)
 
     def __setattr__(self,key,value):
-        particle_attribute = not "_" in key
-        if particle_attribute and len(self.__dict__ ) != 0 :
+        particle_attribute = (not "_" in key) and ( not "center"  in key)
+        if particle_attribute and len(self.__dict__ ) != 0  :
             vlen = 1 if not hasattr(value,"__len__") else len(value)
             if vlen != len(self) :
-                raise ValueError(" length of value  must be the same as the number of particles" )
+                raise ValueError("length of value  must be the same as the number of particles" )
         self.__dict__[key] = value
         if particle_attribute :
             self.__data[key] = value
