@@ -11,8 +11,16 @@ from numpy.distutils.core import Extension
 from numpy.distutils.core import setup
 
 ext = Extension(name = 'nbody6tools.ext',
+                 #extra_compile_args = ['-O3 -fopenmp','-O3'], #if using opemp
+                 #extra_link_args = ["-lgomp"," "],
                  extra_compile_args = ['-O3'],
-                 sources = ['nbody6tools/ext/src/Qpar.f90'], # you may add several modules files under the same extension
+                 sources = ['nbody6tools/ext/src/Qpar.f90']
+                 )
+ext2 = Extension(name = 'nbody6tools.snowballing',
+                 #extra_compile_args = ['-O3 -fopenmp','-O3'], #if using opemp
+                 #extra_link_args = ["-lgomp"," "],
+                 extra_compile_args = ['-O0 -g -fbounds-check'," "],
+                 sources = ['nbody6tools/ext/src/snowballing.f','nbody6tools/ext/src/snowballing.pyf'], # you may add several modules files under the same extension
                  )
 
 setup(
@@ -25,7 +33,7 @@ setup(
      long_description=long_description,
      long_description_content_type="text/markdown",
      packages=setuptools.find_packages(),
-     ext_modules = [ext],
+     ext_modules = [ext,ext2],
  )
 
 
