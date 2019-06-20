@@ -26,7 +26,7 @@ ext2 = Extension(name = 'nbody6tools.snowballing',
 setup(
      name='nbody6tools',  
      version='0.1',
-     scripts=['nbody6tools/scripts/nbtools'] ,
+     scripts=['nbody6tools/scripts/nbtools','nbody6tools/scripts/nbt-movie'] ,
      author="Juan P. Farias",
      author_email="juanfariaso@gmail.com",
      description="Private tools for Nbody simulation research",

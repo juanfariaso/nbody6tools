@@ -66,7 +66,7 @@ def parse_inputfile(inputfilename,**kw):
                 ["SFR", "N00", "DTGF"],[float]*3)
     if KZ[50] == 2 :
         parseline(inputfile.readline(),result,
-                ["NT", "ITSTART", "GRIDSIZE", "DTT","THRESHOLD","TFOLDER"],[int,int,float,float,float,str])
+                ["NT", "ITSTART", "GRIDSIZE", "DTT","THRESHOLD","BGVEL","TFOLDER"],[int,int,float,float,float,float,str])
         tfold = result["TFOLDER"] 
         result["TFOLDER"] = tfold.strip("\"").strip("\'")
 
@@ -232,24 +232,36 @@ class Snapshot(object):
 
         names = record[7]
         #select only stars, not centers of mass
-        mask = names <= n
+        mask_stars = names <= n
+        mask_centers_of_mass = names > n
 
         stars_dict = dict()
-        stars_dict["name"] = record[7][mask]
-        stars_dict["mass"] = record[1][mask]
+        stars_dict["name"] = record[7]
+        stars_dict["mass"] = record[1]
         X = numpy.reshape(record[4],(3,self._ntot),order="F")
-        stars_dict["x"] = X[0,:][mask]
-        stars_dict["y"] = X[1,:][mask]
-        stars_dict["z"] = X[2,:][mask]
+        stars_dict["x"] = X[0,:]
+        stars_dict["y"] = X[1,:]
+        stars_dict["z"] = X[2,:]
         X = numpy.reshape(record[5],(3,self._ntot),order="F")
-        stars_dict["vx"] = X[0,:][mask]
-        stars_dict["vy"] = X[1,:][mask]
-        stars_dict["vz"] = X[2,:][mask]
+        stars_dict["vx"] = X[0,:]
+        stars_dict["vy"] = X[1,:]
+        stars_dict["vz"] = X[2,:]
 
-        self.__stars = Particles(stars_dict,center=self.parameters["rdens"])
+        allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
+
+        self.__stars = allparticles[mask_stars]
+        self.__centers_of_mass = allparticles[mask_centers_of_mass]
 
         self._time = self.__parameters["time"]
         self._physical = False
+
+    def unresolved_stars(self):
+        """
+        Returns Particles object with regularized binaries as single stars
+        """
+        #TODO
+        pass
+
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
@@ -358,7 +370,7 @@ class Particles(Methods,object):
             d = dict()
             for k in self.__data:
                 d[k] = self.__data[k][index]
-            return Particles(d)
+            return Particles(d,center=self.center)
 
     def __setitem__(self,index,value):
         vlen = 1 if not hasattr(value,"__len__") else len(value)

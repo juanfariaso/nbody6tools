@@ -85,7 +85,9 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     z = snapshot.stars["z"]
     r = numpy.sqrt(x**2+y**2+z**2)
     mask =  r < rmax
-    return qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
+    result = qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
+    return result[0],result[1],rmax
+
 
 def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
     """

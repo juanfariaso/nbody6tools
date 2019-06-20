@@ -17,6 +17,12 @@ def get_number_of_snapshots(folder):
         raise ValueError("No snapshots in this folder.")
     return len(l)
 
+def get_times(folder):
+    l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"conf.3*") ]
+    l.sort(key=float)
+    l = numpy.array(l,dtype=float)
+    return l
+
 def read_snapshot(folder,snapshot=0,inputfilename="input"):
     if folder[-1] != "/" : folder +="/"
     opt = Datamodel.parse_inputfile(folder+"/"+inputfilename)

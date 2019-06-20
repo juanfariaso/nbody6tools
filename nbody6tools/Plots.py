@@ -22,7 +22,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,**kw)
             sn.to_physical()
             x = sn.stars[xy[0]]
             y = sn.stars[xy[1]]
-            s = sn.stars["mass"]/500
+            s = sn.stars["mass"]/1
             line.set_offsets(numpy.c_[x,y])
             line.set_sizes(s)
             #print("snapshot: ", num) #TODO: Put nice progress info

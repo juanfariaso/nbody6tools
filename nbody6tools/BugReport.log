@@ -1,0 +1,1 @@
+[1]   if Stars is an Star object: Stars.name.sort() will sort only the names and not the other arrays
