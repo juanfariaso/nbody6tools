@@ -47,7 +47,7 @@ def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g"
     if output is None:
         output =  function.__name__+".dat"
 
-    mode = "w" if overwrite else "wx"
+    mode = "w" if overwrite else "x"
     resultfile =  open(output,mode,1)   #fail if already exists for safety
 
     resultfile.write("# function %s with extra arguments: %s \n"%(
@@ -88,7 +88,6 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     result = qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
     return result[0],result[1],rmax
 
-
 def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
     """
     Custom Lagrangian radii calculation.
@@ -101,4 +100,10 @@ def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
     for fr in mfrac:
         result.append(Utilities.get_mass_radius(snapshot.stars,fraction=fr) )
     return result
+
+def mr_track(snapshot,mass_fraction=0.5):
+    snapshot.to_physical()
+    radius = Utilities.get_mass_radius(snapshot.stars,fraction=mass_fraction) 
+    mass = snapshot.stars.mass.sum()
+    return radius,mass
 

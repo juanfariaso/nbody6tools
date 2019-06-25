@@ -115,6 +115,7 @@ class Snapshot(object):
         record = self.__read_snapshot(snapshotfile)
         self.__parameters = dict()
         self.__structure(record)
+        self.__record = record
 
     @property
     def parameters(self):
@@ -127,7 +128,14 @@ class Snapshot(object):
         """ Dict. containing stellar coordinates:
         mass, x,y,z, vx,vy,vz
         """
-        return self.__stars
+        return self.__allstars[self.__allstars.name < self.n]
+
+    @property
+    def unresolved_stars(self):
+        """
+        Returns Particles object with regularized binaries as single stars
+        """
+        return self.__allstars[self.__allstars.name > 2*self.npairs]
 
     @property
     def inputfile(self):
@@ -233,7 +241,7 @@ class Snapshot(object):
         names = record[7]
         #select only stars, not centers of mass
         mask_stars = names <= n
-        mask_centers_of_mass = names > n
+        #mask_centers_of_mass = names > n
 
         stars_dict = dict()
         stars_dict["name"] = record[7]
@@ -250,29 +258,23 @@ class Snapshot(object):
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
 
         self.__stars = allparticles[mask_stars]
-        self.__centers_of_mass = allparticles[mask_centers_of_mass]
+        self.__allstars = allparticles
 
         self._time = self.__parameters["time"]
         self._physical = False
 
-    def unresolved_stars(self):
-        """
-        Returns Particles object with regularized binaries as single stars
-        """
-        #TODO
-        pass
 
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
-            self.__stars.mass *= self.parameters["zmbar"]
-            self.__stars.x    *= self.parameters["rbar"]
-            self.__stars.y    *= self.parameters["rbar"]
-            self.__stars.z    *= self.parameters["rbar"]
-            self.__stars.vx   *= self.parameters["vstar"]
-            self.__stars.vy   *= self.parameters["vstar"]
-            self.__stars.vz   *= self.parameters["vstar"]
+            self.__allstars.mass *= self.parameters["zmbar"]
+            self.__allstars.x    *= self.parameters["rbar"]
+            self.__allstars.y    *= self.parameters["rbar"]
+            self.__allstars.z    *= self.parameters["rbar"]
+            self.__allstars.vx   *= self.parameters["vstar"]
+            self.__allstars.vy   *= self.parameters["vstar"]
+            self.__allstars.vz   *= self.parameters["vstar"]
             self._time *= self.parameters["tscale"]
             self._physical = True
 
