@@ -25,5 +25,3 @@ class Methods():
         """ Returns a bound subset of particles using the snowballing method"""
         return self[self.bound_indexes(verbose)]
 
-
-

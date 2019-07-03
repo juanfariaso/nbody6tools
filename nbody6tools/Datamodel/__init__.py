@@ -90,6 +90,19 @@ def parse_inputfile(inputfilename,**kw):
 
     return result
 
+def get_binaries_from_files(hardfile,widefile):
+    bwdat = numpy.loadtxt(widefile,skiprows=2).T
+    bdat = numpy.loadtxt(hardfile,skiprows=4).T
+    widebin,hardbin = dict(),dict()
+    for d,dat in zip( [widebin,hardbin],[bwdat,bdat] ):
+        d["primary"  ] = numpy.array(dat[0,:],dtype=int)
+        d["secondary"] = numpy.array(dat[1,:],dtype=int)
+        d["ebin"]      = dat[4,:] #nbody units
+        d["ecc"]       = dat[5,:] 
+        d["period"]    = dat[6,:] #days
+        d["semi"]      = dat[7,:] #AU
+    return hardbin,widebin
+
 class Snapshot(object):
     """
     An object containing the information of a snapshot of Nbody6.
@@ -105,11 +118,12 @@ class Snapshot(object):
       self.to_physcal()     : Transform stars to physical units (Msun,pc,kms)
       self.to_nbody()       : Transform stars to nbody units
 
-      self.to_center(center): Move stars to the specified center. If not specified, use the center of density calculated by Nbody6 #not working
+      self.to_center(center): Move stars to the specified center. If not specified, use the center of density calculated by Nbody6 
       self.reorder(isort)   : Sort stars according to the 'isort' list (e.g. result of numpy.argsort(). If nothing specified, sort by name.
     """
 
     def __init__(self,snapshotfile,inputfile) :
+        self._snapshotfile = snapshotfile
         self._inputfile = parse_inputfile(inputfile)
 
         record = self.__read_snapshot(snapshotfile)
@@ -128,7 +142,7 @@ class Snapshot(object):
         """ Dict. containing stellar coordinates:
         mass, x,y,z, vx,vy,vz
         """
-        return self.__allstars[self.__allstars.name < self.n]
+        return self.__allstars[self.__allstars.name <= self.n]
 
     @property
     def unresolved_stars(self):
@@ -263,8 +277,6 @@ class Snapshot(object):
         self._time = self.__parameters["time"]
         self._physical = False
 
-
-
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
@@ -275,20 +287,23 @@ class Snapshot(object):
             self.__allstars.vx   *= self.parameters["vstar"]
             self.__allstars.vy   *= self.parameters["vstar"]
             self.__allstars.vz   *= self.parameters["vstar"]
+            self.__allstars.center *= self.parameters["rbar"]
             self._time *= self.parameters["tscale"]
+            self.parameters["rdens"]*= self.parameters["rbar"]
             self._physical = True
 
     def to_nbody(self):
         "Make sure stars are in physical units. Transform if not."
         if self._physical :
-            self.__stars.mass /= self.parameters["zmbar"]
-            self.__stars.x    /= self.parameters["rscale"]
-            self.__stars.y    /= self.parameters["rscale"]
-            self.__stars.z    /= self.parameters["rscale"]
-            self.__stars.vx   /= self.parameters["vstar"]
-            self.__stars.vy   /= self.parameters["vstar"]
-            self.__stars.vz   /= self.parameters["vstar"]
+            self.__allstars.mass /= self.parameters["zmbar"]
+            self.__allstars.x    /= self.parameters["rscale"]
+            self.__allstars.y    /= self.parameters["rscale"]
+            self.__allstars.z    /= self.parameters["rscale"]
+            self.__allstars.vx   /= self.parameters["vstar"]
+            self.__allstars.vy   /= self.parameters["vstar"]
+            self.__allstars.vz   /= self.parameters["vstar"]
             self._time /= self.parameters["tscale"]
+            self.parameters["rdens"] /= self.parameters["rbar"]
             self._physical = False
 
     def to_center(self,center=None):
@@ -297,13 +312,15 @@ class Snapshot(object):
         """
         if center is None:
             center = self.parameters["rdens"]
-        self.stars.x -= center[0]
-        self.stars.y -= center[1]
-        self.stars.z -= center[2]
+        #self.__allstars.x -= center[0]
+        #self.__allstars.y -= center[1]
+        #self.__allstars.z -= center[2]
+        self.__allstars.to_center(center)
         self.parameters["rdens"][0] -= center[0]
         self.parameters["rdens"][1] -= center[1]
         self.parameters["rdens"][2] -= center[2]
-        self.stars.__center = center
+        #self.__stars.__center = center
+        #self.__allstars.center = self.parameters["rdens"]
 
     def reorder(self,isort=None):
         """ Sort stars according to the isort list (e.g. result of numpy.argsort(). If nothing specified, sort by name. """
@@ -313,6 +330,78 @@ class Snapshot(object):
         for key in self.stars.keys():
            self.stars[key] = self.stars[key][isort]
 
+    def unresolve_all(self):
+        """ 
+        Unresolve all binaries using data from bwdat.19_* and bdat.9_*. 
+        Only possible if KZ(18) >= 2. 
+        returns a particle set with binaries as center of mass.
+        If only binary parameters are needed, use the wrapper  Reader.read_binaries.
+        """
+        if self.inputfile["KZ"][8] < 2:
+            raise ValueError("Need to run simulation with KZ[8] >= 2 to use this function")
+        widefile = self._snapshotfile.replace("conf.3_","bwdat.19_")
+        hardfile = self._snapshotfile.replace("conf.3_","bdat.9_")
+
+        hard,wide = get_binaries_from_files(hardfile,widefile)
+        ### construct the particle set
+        #all names that belong to a binary
+        allmembers = numpy.concatenate((hard["primary"],hard["secondary"],
+                                        wide["primary"],wide["secondary"]) )
+        primaries = numpy.concatenate((hard["primary"],wide["primary"] ))
+        secondaries = numpy.concatenate((hard["secondary"],wide["secondary"] ))
+        pairs = numpy.array(list( zip(primaries,secondaries)) ) 
+        higher_orders = numpy.where( pairs > self.n  )
+        #print("ntot",self.n)
+        #print("higher_orders",higher_orders)#sorted(higher_orders[0],reverse=True))
+        #print("higher",sorted( set(higher_orders[0]),reverse=True) )
+        #print("hpairs",numpy.array(pairs) [higher_orders[0]] )
+        #for i in sorted(set(higher_orders[0]),reverse=True)  :
+        #    pairs.pop(i)
+        pairs = numpy.delete(pairs,higher_orders[0] , axis=0 )
+        primaries,secondaries = numpy.array(pairs).T
+
+        #extract binaries in multiples and add to singles for now #TODO handle multiples into one single particle
+
+        #position of singles, primaries and secondaries
+        #TODO: handle multiple systems
+        i_singles = numpy.invert(numpy.isin(self.stars.name,allmembers))
+        singles = self.stars[i_singles]
+
+        i_prim = numpy.isin(self.stars.name,primaries)
+        prim_stars = self.stars[i_prim]
+
+        i_sec = numpy.isin(self.stars.name,secondaries)
+        sec_stars = self.stars[i_sec]
+
+        #print(i_prim.sum())
+        #print(i_sec.sum())
+
+
+
+        #Make sure they are in the correct order
+        #isort = numpy.argsort(primaries)
+        #primaries = primaries[isort]
+        #secondaries = secondaries[isort]
+
+        #order = numpy.argsort(prim_stars)
+        #TODO: add check that pairs are correct
+        bdict = dict()
+        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
+        bdict["mass"] = prim_stars.mass + sec_stars.mass
+        bdict["x"]    = (prim_stars.mass*prim_stars.x + sec_stars.mass*sec_stars.x) /bdict["mass"]
+        bdict["y"]    = (prim_stars.mass*prim_stars.y + sec_stars.mass*sec_stars.y) /bdict["mass"]
+        bdict["z"]    = (prim_stars.mass*prim_stars.z + sec_stars.mass*sec_stars.z) /bdict["mass"]
+        bdict["vx"]   = (prim_stars.mass*prim_stars.vx + sec_stars.mass*sec_stars.vx) /bdict["mass"]
+        bdict["vy"]   = (prim_stars.mass*prim_stars.vy + sec_stars.mass*sec_stars.vy) /bdict["mass"]
+        bdict["vz"]   = (prim_stars.mass*prim_stars.vz + sec_stars.mass*sec_stars.vz) /bdict["mass"]
+
+        result_dict = dict()
+        for key in singles.available_attributes():
+            sval = singles[key]
+            bval = bdict[key]
+            result_dict[key] = numpy.concatenate( [sval,bval] )
+
+        return Particles(result_dict)
 
 class Particles(Methods,object):
     """
@@ -336,6 +425,17 @@ class Particles(Methods,object):
     @property
     def center(self):
         return self.__center
+
+    def to_center(self,center=None):
+        if center is None:
+            center = self.center
+        else:
+            center = numpy.array(center)
+        self.x -= center[0]
+        self.y -= center[1]
+        self.z -= center[2]
+        self.__center -= center
+
 
     def set_center(self,center):
         print("setting center",center)
@@ -404,7 +504,6 @@ class Particles(Methods,object):
 
     def available_attributes(self):
         return list(self.__data.keys() )
-
 
 class Particle(object):
     def __init__(self,star_dict):

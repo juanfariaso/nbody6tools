@@ -34,6 +34,7 @@ def executable_options():
     parse_evol.set_defaults(fun = Plots.plot )
     parse_evol.add_argument("-s","--space",help="space to plot. Default position.",default = "position",
             choices=["position","velocity"])
+    parse_evol.add_argument("--snapshot",help="Snapshot number to plot. Default 1",default=1)
 
     #compute
     parse_compute = subparsers.add_parser("compute",help="Calculate a parameter over time and write result in output.") 
