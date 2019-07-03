@@ -1,0 +1,217 @@
+#!/usr/bin/python3
+from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,get_times
+from nbody6tools.Datamodel import parse_inputfile
+from matplotlib import animation,pyplot,cm
+from scipy.io import FortranFile
+import numpy
+
+def interpolate_state(t,t1,t2,State1,State2 ) :
+    """ interpolate array between state 1 and 2.
+    t = the moment to interpolate
+    t1,t2 the times that represent state1 and state2
+    State1,State2 the previous and future state. Should be any kind of array
+    """
+    if t < t1 or t > t2 :
+        raise ValueError("Time out of range: %f - %f - %f"%(t1,t,t2) )
+
+    if t1==t2:
+        return State2
+
+    f = float(t - t1) / float(t2-t1 )
+    return State1*(1.-f) + State2*f
+
+def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length=50,
+        tmax=None,cmap="inferno",
+        scolor=None,zlog = False, zlim=None,
+        colorbar=False,dpi=None,**kw):
+    if output is None:
+        output = "./movie.mp4"
+    if scolor is None:
+        _cmap = cm.get_cmap(cmap)
+        scolor = _cmap(1000000)
+    
+    #if max_movie_time is None:
+    max_movie_time = movie_length
+
+    opt = parse_inputfile(inputfile)
+
+    sn0 = read_snapshot(DataFolder,inputfilename=inputfile)
+    times = get_times(DataFolder)*sn0.parameters["tscale"]
+    if tmax is None:
+        tmax = times[-1]
+    #ntot = get_number_of_snapshots(DataFolder)
+    times = times[times<= tmax ]
+    ntot = len(times)
+
+
+    ### setup the plot with empty data
+    fig = pyplot.figure()
+    drawgas = opt["KZ"][50] > 1
+    if drawgas :
+        if zlim is None:
+            vmin,vmax = plotgas(DataFolder,0,get_limits=True,zlog=zlog)
+            vmax*=1.3
+        else:
+            vmin,vmax = zlim
+        imbg = plotgas(DataFolder,0,vmin=0,vmax=vmax,cmap=cmap,zlog=zlog,colorbar=colorbar)
+    else:
+        imbg = None
+
+    sc_stars = pyplot.scatter([],[],[],color=scolor,alpha=.8)
+    title = pyplot.title("Time : %.2f"%0.0)
+    pyplot.xlabel("x (pc)")
+    pyplot.ylabel("y (pc)")
+    ###
+
+    frames = numpy.linspace(0,ntot,fps*movie_length)
+
+    global i_prev,i_next,ipold
+    global SN0,SN1,State0,State1,time0,time1
+    global StNew,StOld,StOldNew
+
+    i_prev = -1
+    StNew = []
+
+    #with writer.saving(fig,output,400): 
+        #for frame in frames[0: fps*max_movie_time ] :
+    def update_line(i,sc_stars,imbg,frames):
+            global i_prev,i_next,ipold
+            global SN0,SN1,State0,State1,time0,time1
+            global StNew,StOld,StOldNew
+            frame = frames[i]
+            movie_time = float(i)/float(fps)
+            print("frame:%i Movie time: %.2f (End time: %.2f)"%(i,movie_time,max_movie_time),end="\r")
+            ipold = i_prev
+            i_prev = int(numpy.floor(frame))
+            i_next = int(numpy.ceil(frame) )
+            if i_prev != ipold: 
+                StOldNew = StNew
+                SN0 = read_snapshot(DataFolder,i_prev)
+                SN0.to_physical()
+                time0  = SN0.time
+                State0 = SN0.stars
+                olds = State0.name
+                nord = numpy.argsort(olds)
+                State0 = State0[nord]
+
+                SN1 = read_snapshot(DataFolder,i_next)
+                SN1.to_physical()
+                time1 = SN1.time
+                State1 = SN1.stars
+                nord = numpy.argsort(State1.name)
+                State1 = State1[nord]
+                State1 = State1[:len(State0)]
+
+                StNew  = State1[ len(State0):]  #not yet used
+            sim_time = interpolate_state(frame,i_prev,i_next,time0,time1)
+
+            if drawgas:
+                plotgas(DataFolder,sim_time,update=True,imobj=imbg,zlog=zlog)
+
+            x = interpolate_state(frame,i_prev,i_next,State0.x,State1.x)
+            y = interpolate_state(frame,i_prev,i_next,State0.y,State1.y)
+
+
+            #if len(StOldNew) > 0
+            #    x = numpy.concatenate([x,StOldNew
+
+            sc_stars.set_offsets(numpy.c_[x,y])
+            sc_stars.set_sizes( State1.mass ) 
+
+            title.set_text("Time : %.2f Myr"%(sim_time))
+            return sc_stars,imbg
+
+    movie = animation.FuncAnimation(fig, update_line, len(frames), fargs=(sc_stars,imbg,frames),blit=True)
+    movie.save(output,fps=fps,dpi=dpi) 
+    print("\nDone")
+
+def plotgas(DataFolder,time,ax=pyplot.gca(),update = False,imobj=None,get_limits=False,background_model=True,
+        cmap="gist_gray",zlog=False,colorbar=False,**kw):
+
+    opt = parse_inputfile(DataFolder+"/input")
+    tfolder = opt["TFOLDER"]
+    zbar = opt["ZMBAR"]*opt["N"]
+    gridsize = opt["GRIDSIZE"]*opt["RBAR"]
+    dtt = opt["DTT"]
+    itstart = opt["ITSTART"]
+    nt = opt["NT"]
+    threshold = opt["THRESHOLD"]
+    krho = opt["KRHO"]
+    rcloud = opt["AP"]*opt["RBAR"]
+    parameters = read_snapshot(DataFolder,0).parameters
+
+    if time == "last":
+        time = (opt["NT"]-itstart) * dtt 
+
+    #mcloud = (opt["MP"] - opt["MPDOT"]*time/parameters["tscale"] ) /opt["MP"]
+    #print("\nMcloud:",mcloud)
+
+    i1 = numpy.floor(itstart+time/dtt)
+    i2 = numpy.ceil(itstart+time/dtt)
+    t1 = (i1-itstart)*dtt
+    t2 = (i2-itstart)*dtt
+
+    mcloud1 = (opt["MP"] - opt["MPDOT"]*t1/parameters["tscale"] ) /opt["MP"]
+    mcloud2 = (opt["MP"] - opt["MPDOT"]*t2/parameters["tscale"] ) /opt["MP"]
+
+    States = []
+    #get both states
+    for i,mcl in zip([i1,i2],[mcloud1,mcloud2] ):
+        f = FortranFile(tfolder+"/%04i"%i,"r")
+        dims = f.read_ints(dtype=numpy.int32) #are wrong for some reason
+        dims = numpy.array([128,128,128])
+        rho = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
+        #rho [rho<threshold ] = 0
+        rho *= mcl
+        #rho /= rho.sum()
+        f.close()
+        States.append(rho)
+    
+    rho = interpolate_state(time,(i1-itstart)*dtt,(i2-itstart)*dtt,States[0],States[1] )
+        #vx = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
+        #vy = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
+        #vz = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
+
+    cdens = rho.sum(axis=2).T #TODO: Able to choose projection
+    if zlog:
+        cdens = numpy.log10(cdens)
+    if get_limits :
+        print(zlog, cdens.min(),cdens.max(),end="\n")
+        return cdens.min(),cdens.max()
+
+    #print("plotting bgimage snapshot",i,cdens.min(),cdens.max())
+
+    if update:
+        imobj.set_data(cdens)
+        return 
+    result = pyplot.imshow(cdens,extent=[-gridsize/2,gridsize/2]*2,cmap=cmap,zorder=-5,
+            origin="lower",**kw)
+    if colorbar:
+        pyplot.colorbar()
+    if False  :
+        pyplot.savefig("test.png")
+
+    return result
+
+if __name__ == "__main__":
+    import sys
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser("Creates a movie of an Nbody simulation in a fancy way. Interpolates between frames to get smooth movements and a desired frame rate and movie length")
+    parser.add_argument("DataFolder",metavar="FOLDER", default="./",nargs="?",
+            help ="Folder where data is located. If not specified looks in current folder." )
+    parser.add_argument("--inputfile",help="Name of Nbody6 inputfile, default: input",default="input")
+    parser.add_argument("--output","-o",help = "output filename. Default: movie.mp4",default="movie.mp4")
+    parser.add_argument("--fps",help="Desired frames per second. Default: 30", default = 30,type=float)
+    parser.add_argument("--tmax","-t",help="Maximun simulation time to animate (Myr). Default: End of Simulation",default=None,type=float)
+    parser.add_argument("--movie_length",help="Movie length in seconds. Default=30",default=30,type=float)
+    parser.add_argument("--cmap",help="Background image colormap (see matplotlib documentation), default=viridis",default="viridis")
+    parser.add_argument("--scolor",help="Color for the stars (see matplotlib documentation). Default is taken from the maximum value in the colormap.",default=None)
+    parser.add_argument("--zlog",help="Use logaritmic axis for background gas",action="store_true")
+    parser.add_argument("--colorbar",help="Show colorbar",action="store_true")
+    parser.add_argument("--zlim",help="limits in the colorbar",nargs=2,type=float,default=None)
+    parser.add_argument("--dpi",help="adjust dpi of video",type=float,default=None)
+
+
+    args = parser.parse_args()
+    fancy_movie(**vars(args))
