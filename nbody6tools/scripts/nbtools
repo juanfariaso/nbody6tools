@@ -22,6 +22,7 @@ def executable_options():
     parse_animate.add_argument("--xy",help="Projection of animation. Default 'xy'",default = "xy",
             choices=["xy","yx","xz","zx","yz","zy"])
     parse_animate.add_argument("--dpi",help="dpi for animated output. Default 'None'",default = None)
+    parse_animate.add_argument("--show_bound",help="Show bound star in red. Dfault False",default = False,action="store_true")
 
     #evol
     parse_evol = subparsers.add_parser("evol",help="shows the evolution of a parameter")
@@ -54,6 +55,7 @@ def executable_options():
     return parser
    
 def execute_actions(args) :
+    print(args)
     args.fun(**vars(args))
 
 if __name__ == '__main__':

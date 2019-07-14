@@ -76,7 +76,7 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     zeroaxis: if average=0, will set the axis which position will be taken as zero. keys are: 1-> x ; 2-> y, 3-> z
     rmax    : Mass fraction radius to use as maximum. Default : 0.9
     
-    returns "mean Qparameter","standard error of mean"
+    returns "mean Qparameter","standard error of mean", current rmax
     """
     #snapshot.to_physical() #unnesessary
     rmax = Utilities.get_mass_radius(snapshot.stars,rmax)
@@ -107,3 +107,20 @@ def mr_track(snapshot,mass_fraction=0.5):
     mass = snapshot.stars.mass.sum()
     return radius,mass
 
+def bound_fraction(snapshot):
+    """
+    Compute bound mass fraction and basic statistics of bound stars
+      return:
+      bound_fraction, sigma_bound ,rh_bound
+    """
+    snapshot.to_physical()
+    snapshot.to_center()
+    #if snapshot.parameters["kz"][8]>0 :
+    stars = snapshot.unresolve_all()
+    #else:
+    #    stars = snapshot.stars
+    
+    bound_set = stars.bound_subset()
+    sigma = bound_set.velocity_dispersion()
+    rh = bound_set.half_mass_radius()
+    return bound_set.mass.sum() / stars.mass.sum(), sigma, rh

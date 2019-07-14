@@ -8,7 +8,7 @@ from matplotlib import animation
 import numpy
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile
 
-def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,**kw):
+def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_bound=False,**kw):
     """
     Quick animation of the simulation
     If output is given animation is saved in that file.
@@ -16,8 +16,9 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,**kw)
     """
     ##TODDO - add time to title
     ##      - make it look better, but make sure is fast.
+    print("showbound",show_bound)
 
-    def update_line(num,line, folder):
+    def update_line(num,line,bline, folder):
             sn = read_snapshot(folder,num)
             sn.to_physical()
             x = sn.stars[xy[0]]
@@ -25,13 +26,20 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,**kw)
             s = sn.stars["mass"]/1
             line.set_offsets(numpy.c_[x,y])
             line.set_sizes(s)
+            if show_bound :
+                bound_set = sn.stars.bound_set()
+                xb = bound_set[xy[0]]
+                yb = bound_set[xy[1]]
+                bline.set_offsets(numpy.c_[xb,yb])
+                bline.set_sizes(s)
             #print("snapshot: ", num) #TODO: Put nice progress info
             #title.set_text('Time %.2f Myr'%(sn.parameters["time"]*sn.parameters["tscale"] ) )
-            return line,
+            return line,bline
     opt = parse_inputfile(folder+"input")
     nsnap = get_number_of_snapshots(folder)
     fig1 = pyplot.gcf()
     l = pyplot.scatter([],[],[],c="k",alpha=0.8)
+    bl = pyplot.scatter([],[],[],c="r",alpha=0.8)
     if boxsize is None:
         size = 10*opt["RBAR"]
     else:
@@ -44,7 +52,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,**kw)
     ax = pyplot.gca()
     ax.set_aspect("equal")
     #title = ax.set_title("Time : %.2f"%0.0) #not working
-    movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,folder),
+    movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,bl,folder),
                                        interval=10, blit=True)
     if output is None :
         pyplot.show()

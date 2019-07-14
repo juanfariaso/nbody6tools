@@ -140,7 +140,7 @@ class Snapshot(object):
     @property
     def stars(self):
         """ Dict. containing stellar coordinates:
-        mass, x,y,z, vx,vy,vz
+        mass, x,y,z, vx,vy,vz,epot
         """
         return self.__allstars[self.__allstars.name <= self.n]
 
@@ -189,7 +189,7 @@ class Snapshot(object):
 
     @property
     def physical(self):
-        """ bool, True : stars are in phycial units: Msun, parsec, km/s
+        """ bool, True : stars are in physical units: Msun, parsec, km/s
               False: stars are in code units
         """
         return self._physical
@@ -251,6 +251,7 @@ class Snapshot(object):
         self._nsingles = self.ntot  - 3*self._npairs
         n = 2*self._npairs + self._nsingles
         self._n = n
+        self._time = self.__parameters["time"]
 
         names = record[7]
         #select only stars, not centers of mass
@@ -268,14 +269,37 @@ class Snapshot(object):
         stars_dict["vx"] = X[0,:]
         stars_dict["vy"] = X[1,:]
         stars_dict["vz"] = X[2,:]
+        stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:],False)
 
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
 
         self.__stars = allparticles[mask_stars]
         self.__allstars = allparticles
 
-        self._time = self.__parameters["time"]
         self._physical = False
+
+    def external_potential_at_point(self,x,y,z,physical=False):
+        """ Return background potential field at given point.
+        physical : if True x,y,z are on pc. default False (Nbody units)
+        
+        returns:
+          background potential at x,y,z
+          if physical is True : result in MSun * km**2 * s**-2
+          else: result in Nbody units
+        """
+        G = 1.0
+        Mgas = self.inputfile["MP"] - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
+        if physical : 
+            Mgas*=self.parameters["zmbar"]
+            G = 4.3020077853E-3
+        if self.inputfile["KZ"][14] == 5 and Mgas>0 : #TODO implement other external potentials
+            #power law potential
+            r = numpy.sqrt(x**2 + y**2 + z**2 ) 
+            result = - Mgas*(r/self.inputfile["AP"])**(3.0 - self.inputfile["KRHO"] )/r
+        else:
+            result = x*0.0
+
+        return result
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
@@ -287,6 +311,9 @@ class Snapshot(object):
             self.__allstars.vx   *= self.parameters["vstar"]
             self.__allstars.vy   *= self.parameters["vstar"]
             self.__allstars.vz   *= self.parameters["vstar"]
+            G = 4.3020077853E-3
+            escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
+            self.__allstars.epot*=escale
             self.__allstars.center *= self.parameters["rbar"]
             self._time *= self.parameters["tscale"]
             self.parameters["rdens"]*= self.parameters["rbar"]
@@ -302,6 +329,9 @@ class Snapshot(object):
             self.__allstars.vx   /= self.parameters["vstar"]
             self.__allstars.vy   /= self.parameters["vstar"]
             self.__allstars.vz   /= self.parameters["vstar"]
+            G = 4.3020077853E-3
+            escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
+            self.__allstars.epot /= escale
             self._time /= self.parameters["tscale"]
             self.parameters["rdens"] /= self.parameters["rbar"]
             self._physical = False
@@ -394,6 +424,7 @@ class Snapshot(object):
         bdict["vx"]   = (prim_stars.mass*prim_stars.vx + sec_stars.mass*sec_stars.vx) /bdict["mass"]
         bdict["vy"]   = (prim_stars.mass*prim_stars.vy + sec_stars.mass*sec_stars.vy) /bdict["mass"]
         bdict["vz"]   = (prim_stars.mass*prim_stars.vz + sec_stars.mass*sec_stars.vz) /bdict["mass"]
+        bdict["epot"] = self.external_potential_at_point(bdict["x"],bdict["y"],bdict["z"],self.physical) 
 
         result_dict = dict()
         for key in singles.available_attributes():
