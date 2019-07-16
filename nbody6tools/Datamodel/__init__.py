@@ -398,6 +398,9 @@ class Snapshot(object):
         secondaries = numpy.concatenate((hard["secondary"],wide["secondary"] ))
         pairs = numpy.array(list( zip(primaries,secondaries)) ) 
         higher_orders = numpy.where( pairs > self.n  )
+        #print(len(pairs),"len pairs")
+        if len(pairs) == 0:
+            return self.stars
         #print("ntot",self.n)
         #print("higher_orders",higher_orders)#sorted(higher_orders[0],reverse=True))
         #print("higher",sorted( set(higher_orders[0]),reverse=True) )
