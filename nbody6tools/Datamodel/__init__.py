@@ -3,6 +3,7 @@ import numpy
 from scipy.io import FortranFile
 import os
 import glob
+import warnings
 
 from ._ParticleMethods  import Methods
 
@@ -91,16 +92,29 @@ def parse_inputfile(inputfilename,**kw):
     return result
 
 def get_binaries_from_files(hardfile,widefile):
-    bwdat = numpy.loadtxt(widefile,skiprows=2).T
-    bdat = numpy.loadtxt(hardfile,skiprows=4).T
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        bwdat = numpy.loadtxt(widefile,skiprows=2).T
+        bdat = numpy.loadtxt(hardfile,skiprows=4).T
     widebin,hardbin = dict(),dict()
     for d,dat in zip( [widebin,hardbin],[bwdat,bdat] ):
-        d["primary"  ] = numpy.array(dat[0,:],dtype=int)
-        d["secondary"] = numpy.array(dat[1,:],dtype=int)
-        d["ebin"]      = dat[4,:] #nbody units
-        d["ecc"]       = dat[5,:] 
-        d["period"]    = dat[6,:] #days
-        d["semi"]      = dat[7,:] #AU
+        if len(dat) > 0 :
+            if dat.ndim == 1:
+                dat = numpy.array([ numpy.array(dat) ,]  ).T
+            d["primary"  ] = numpy.array(dat[0,:],dtype=int)
+            d["secondary"] = numpy.array(dat[1,:],dtype=int)
+            d["ebin"]      = dat[4,:] #nbody units
+            d["ecc"]       = dat[5,:] 
+            d["period"]    = dat[6,:] #days
+            d["semi"]      = dat[7,:] #AU
+        else:
+            d["primary"  ] = numpy.array([])
+            d["secondary"] = numpy.array([])
+            d["ebin"]      = numpy.array([])
+            d["ecc"]       = numpy.array([])
+            d["period"]    = numpy.array([])
+            d["semi"]      = numpy.array([])
+
     return hardbin,widebin
 
 class Snapshot(object):
@@ -288,14 +302,17 @@ class Snapshot(object):
           else: result in Nbody units
         """
         G = 1.0
-        Mgas = self.inputfile["MP"] - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
-        if physical : 
-            Mgas*=self.parameters["zmbar"]
-            G = 4.3020077853E-3
-        if self.inputfile["KZ"][14] == 5 and Mgas>0 : #TODO implement other external potentials
-            #power law potential
-            r = numpy.sqrt(x**2 + y**2 + z**2 ) 
-            result = - Mgas*(r/self.inputfile["AP"])**(3.0 - self.inputfile["KRHO"] )/r
+        if "MP" in self.inputfile.keys():
+            Mgas = self.inputfile["MP"] - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
+            if physical : 
+                Mgas*=self.parameters["zmbar"]
+                G = 4.3020077853E-3
+            if self.inputfile["KZ"][14] == 5 and Mgas>0 : #TODO implement other external potentials
+                #power law potential
+                r = numpy.sqrt(x**2 + y**2 + z**2 ) 
+                result = - Mgas*(r/self.inputfile["AP"])**(3.0 - self.inputfile["KRHO"] )/r
+            else:
+                result = x*0.0
         else:
             result = x*0.0
 

@@ -29,4 +29,57 @@ class Methods():
         """ return one dimensional velocity dispersion (average of the three projections)"""
         return Utilities.get_velocity_dispersion(self,direction)
 
+    def potential_energy(self, G = 4.3020077853E-3,smoothing_length=0.01):
+        """
+        Returns the total potential energy of the self in the self set.
+        """
+
+        if len(self) < 2:
+            return 0
+
+        mass = self.mass
+        x_vector = self.x
+        y_vector = self.y
+        z_vector = self.z
+        epot = self.epot
+
+        sum_of_energies = 0.0
+
+        for i in range(len(self) - 1):
+            x = x_vector[i]
+            y = y_vector[i]
+            z = z_vector[i]
+            dx = x - x_vector[i+1:]
+            dy = y - y_vector[i+1:]
+            dz = z - z_vector[i+1:]
+            dr = numpy.sqrt( (dx * dx) + (dy * dy) + (dz * dz) + smoothing_length*smoothing_length)
+            m_m = mass[i] * mass[i+1:]
+
+            energy_of_this_particle = (m_m / dr).sum() + epot[i]*mass[i]
+            sum_of_energies -= energy_of_this_particle
+        return G * sum_of_energies
+
+    def kinetic_energy(self):
+        ke = 0.5*self.mass*(self.vx**2 + self.vy**2 +self.vz**2 )
+        return ke.sum()
+
+    def virial_ratio(self,G = 4.3020077853E-3,smoothing_length=0.01):
+        return -self.kinetic_energy()/self.potential_energy(G=G,smoothing_length=smoothing_length) 
+
+    def center_of_mass(self):
+        mtot = self.mass.sum()
+        x = (self.mass*self.x).sum()/mtot
+        y = (self.mass*self.y).sum()/mtot
+        z = (self.mass*self.z).sum()/mtot
+        return x,y,z
+
+    def center_of_mass_velocity(self):
+        mtot = self.mass.sum()
+        vx = (self.mass*self.vx).sum()/mtot
+        vy = (self.mass*self.vy).sum()/mtot
+        vz = (self.mass*self.vz).sum()/mtot
+        return vx,vy,vz
+
+        
+
 
