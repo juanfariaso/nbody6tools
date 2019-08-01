@@ -1,9 +1,37 @@
 #!/usr/bin/python3
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,get_times
 from nbody6tools.Datamodel import parse_inputfile
+import matplotlib
+matplotlib.use("agg")
 from matplotlib import animation,pyplot,cm
 from scipy.io import FortranFile
+from scipy.signal import savgol_filter
 import numpy
+
+
+def compute_trajectory(DataFolder="./",**kw):
+    times = get_times(DataFolder)
+    outfile = open("nbt-movie_trayectory.dat","w")
+    for i in range(len(times)) :
+        sn = read_snapshot(DataFolder,i) 
+        x,y,z = sn.parameters["rdens"]*sn.parameters["rbar"]
+        size = sn.parameters["rscale"]*sn.parameters["rbar"]
+        print("%i  %.5g    %.5g    %.5g   %.5g "%(i,x,y,z,size),end="\r" ) 
+        outfile.write("%i  %.5g    %.5g    %.5g   %.5g \n"%(i,x,y,z,size) ) 
+    outfile.close()
+
+    #smooth the trajectory
+    window, polyorder = 51,2
+    I,x,y,z,size = numpy.loadtxt("nbt-movie_trayectory.dat").T
+    xs = savgol_filter(x,window,polyorder)
+    ys = savgol_filter(y,window,polyorder)
+    zs = savgol_filter(z,window,polyorder)
+    sizes = savgol_filter(size,window,polyorder)
+
+    outfile = open("nbt-movie_trayectory_smooth.dat","w" )
+    for i,x,y,z,size in zip(I,xs,ys,zs,sizes) : 
+        outfile.write("%i  %.5g    %.5g    %.5g   %.5g \n"%(i,x,y,z,size) ) 
+    outfile.close()
 
 def interpolate_state(t,t1,t2,State1,State2 ) :
     """ interpolate array between state 1 and 2.
@@ -21,19 +49,23 @@ def interpolate_state(t,t1,t2,State1,State2 ) :
     return State1*(1.-f) + State2*f
 
 def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length=50,
-        tmax=None,cmap="inferno",
+        tmax=None,cmap="magma",
         scolor=None,zlog = False, zlim=None,
-        colorbar=False,dpi=None,**kw):
+        colorbar=False,dpi=None,
+        boxsize = None,
+        xy = "xz",
+        **kw):
     if output is None:
         output = "./movie.mp4"
     if scolor is None:
         _cmap = cm.get_cmap(cmap)
         scolor = _cmap(1000000)
+    bcolor = "c"
     
     #if max_movie_time is None:
     max_movie_time = movie_length
 
-    opt = parse_inputfile(inputfile)
+    opt = parse_inputfile(DataFolder+"/"+inputfile)
 
     sn0 = read_snapshot(DataFolder,inputfilename=inputfile)
     times = get_times(DataFolder)*sn0.parameters["tscale"]
@@ -46,21 +78,36 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
 
     ### setup the plot with empty data
     fig = pyplot.figure()
-    drawgas = opt["KZ"][50] > 1
+    drawgas = opt["KZ"][50] > 0 
     if drawgas :
         if zlim is None:
             vmin,vmax = plotgas(DataFolder,0,get_limits=True,zlog=zlog)
+            print("zlimits:",vmin,vmax)
             vmax*=1.3
         else:
             vmin,vmax = zlim
-        imbg = plotgas(DataFolder,0,vmin=0,vmax=vmax,cmap=cmap,zlog=zlog,colorbar=colorbar)
+        _cmap = cm.get_cmap(cmap)
+        pyplot.rcParams["axes.facecolor"] = _cmap(0)
+        imbg,gridsize = plotgas(DataFolder,0,vmin=vmin,vmax=vmax,cmap=cmap,zlog=zlog,colorbar=colorbar)
+        if boxsize is None:
+            boxsize = gridsize
     else:
+        pyplot.rcParams["axes.facecolor"] = "black"
         imbg = None
 
     sc_stars = pyplot.scatter([],[],[],color=scolor,alpha=.8)
     title = pyplot.title("Time : %.2f"%0.0)
     pyplot.xlabel("x (pc)")
     pyplot.ylabel("y (pc)")
+    if boxsize is None:
+        boxsize = sn0.parameters["rscale"]*4*sn0.parameters["rbar"]
+
+    #TODO make this line optional
+
+    pyplot.xlim( (-boxsize/2,boxsize/2) )
+    pyplot.ylim( (-boxsize/2,boxsize/2) )
+    pyplot.gca().set_aspect("equal")
+
     ###
 
     frames = numpy.linspace(0,ntot,fps*movie_length)
@@ -68,16 +115,40 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
     global i_prev,i_next,ipold
     global SN0,SN1,State0,State1,time0,time1
     global StNew,StOld,StOldNew
+    global facecolors
 
     i_prev = -1
     StNew = []
+    Ic,xc,yc,zc,sizec = numpy.loadtxt("nbt-movie_trayectory_smooth.dat").T
 
     #with writer.saving(fig,output,400): 
         #for frame in frames[0: fps*max_movie_time ] :
+    def adjust_camera(i,ax = pyplot.gca(),mode="data") :
+        Ic,xc,yc,zc,sizec = numpy.loadtxt("nbt-movie_trayectory_smooth.dat").T
+        X = dict()
+        iprev = int(numpy.floor(i) )
+        inext = int(numpy.ceil(i) )
+        X["x"] = interpolate_state(i,iprev,inext,xc[iprev],xc[inext])
+        X["y"] = interpolate_state(i,iprev,inext,yc[iprev],yc[inext])
+        X["z"] = interpolate_state(i,iprev,inext,zc[iprev],zc[inext])
+        S = interpolate_state(i,iprev,inext,sizec[iprev],sizec[inext])
+         
+
+        xlim = ( - boxsize/2 + X[xy[0]] , boxsize/2 + X[xy[0]]   )
+        ylim = ( - boxsize/2 + X[xy[1]] , boxsize/2 + X[xy[1]]   )
+        if mode == "camera":
+            ax.set_ylim(ylim)
+            ax.set_xlim(xlim)
+            return 0,0,S
+        else:
+            return X[xy[0]] ,X[xy[1]],S
+
+
     def update_line(i,sc_stars,imbg,frames):
             global i_prev,i_next,ipold
             global SN0,SN1,State0,State1,time0,time1
             global StNew,StOld,StOldNew
+            global facecolors
             frame = frames[i]
             movie_time = float(i)/float(fps)
             print("frame:%i Movie time: %.2f (End time: %.2f)"%(i,movie_time,max_movie_time),end="\r")
@@ -93,6 +164,9 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
                 olds = State0.name
                 nord = numpy.argsort(olds)
                 State0 = State0[nord]
+                #i0Bound = State0.bound_indexes()
+                facecolors = numpy.array([scolor]*len(State0))
+                #facecolors[i0Bound] = bcolor
 
                 SN1 = read_snapshot(DataFolder,i_next)
                 SN1.to_physical()
@@ -103,13 +177,16 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
                 State1 = State1[:len(State0)]
 
                 StNew  = State1[ len(State0):]  #not yet used
+                #print("inew Nnew, iold,Nold",i_next, len(State1) , i_prev,len(State0) )
+
+            xc,yc,sizec = adjust_camera(frame,ax=pyplot.gca(),mode="data")
             sim_time = interpolate_state(frame,i_prev,i_next,time0,time1)
 
             if drawgas:
                 plotgas(DataFolder,sim_time,update=True,imobj=imbg,zlog=zlog)
 
-            x = interpolate_state(frame,i_prev,i_next,State0.x,State1.x)
-            y = interpolate_state(frame,i_prev,i_next,State0.y,State1.y)
+            x = interpolate_state(frame,i_prev,i_next,State0[xy[0]],State1[xy[0]])  - xc
+            y = interpolate_state(frame,i_prev,i_next,State0[xy[1]],State1[xy[1]])  - yc
 
 
             #if len(StOldNew) > 0
@@ -117,18 +194,57 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
 
             sc_stars.set_offsets(numpy.c_[x,y])
             sc_stars.set_sizes( State1.mass ) 
+            sc_stars.set_facecolors( facecolors )
+            sc_stars.set_edgecolors( facecolors )
 
             title.set_text("Time : %.2f Myr"%(sim_time))
-            return sc_stars,imbg
+            if drawgas :
+                return sc_stars,imbg
+            else:
+                return sc_stars,
 
     movie = animation.FuncAnimation(fig, update_line, len(frames), fargs=(sc_stars,imbg,frames),blit=True)
     movie.save(output,fps=fps,dpi=dpi) 
     print("\nDone")
 
+def powerlaw_gas(opt,parameters,time,ax=pyplot.gca(),update=False,imobj=None,cmap="magma",zlog=False,colorbar=False,get_limits=False,**kw):
+    rcloud = opt["AP"]*1.2
+    mcloud = (opt["MP"] - opt["MPDOT"]*time/parameters["tscale"] ) /opt["MP"] 
+    rho0 = 3.0 * mcloud/4/numpy.pi/rcloud**3
+    lims = (-rcloud*10,rcloud*10)
+
+    x = numpy.linspace(lims[0],lims[1],256) 
+    y = numpy.linspace(lims[0],lims[1],256) 
+    X,Y = numpy.meshgrid(x,y)
+    R = numpy.sqrt(X**2 + Y**2) / rcloud
+    rho = rho0*R**(-opt["KRHO"] )
+    if zlog :
+        rho = numpy.log10(rho)
+        rho[R>1.2] = numpy.log10(rho0) - 10
+    else:
+        rho[R>1.2 ] = rho0/1E10
+        pass
+    if get_limits:
+        if zlog:
+            rho0 = numpy.log10(rho0)
+        return rho0, rho.max()
+    if update:
+        imobj.set_data(rho)
+        imobj.set_extent([lims[0],lims[1]]*2 )
+        return 
+    result = pyplot.imshow(rho,extent=[lims[0],lims[1]]*2,cmap=cmap,zorder=-5,**kw)
+    if colorbar:
+        pyplot.colorbar()
+    return result,rcloud*2
+
 def plotgas(DataFolder,time,ax=pyplot.gca(),update = False,imobj=None,get_limits=False,background_model=True,
         cmap="gist_gray",zlog=False,colorbar=False,**kw):
 
     opt = parse_inputfile(DataFolder+"/input")
+    parameters = read_snapshot(DataFolder,0).parameters
+    if opt["KZ"][14] == 5 and opt["KZ"][50]==1:
+        return powerlaw_gas(opt,parameters,time,ax=ax,update=update,imobj=imobj,cmap=cmap,zlog=zlog,colorbar=colorbar,get_limits=get_limits,**kw)
+
     tfolder = opt["TFOLDER"]
     zbar = opt["ZMBAR"]*opt["N"]
     gridsize = opt["GRIDSIZE"]*opt["RBAR"]
@@ -138,7 +254,6 @@ def plotgas(DataFolder,time,ax=pyplot.gca(),update = False,imobj=None,get_limits
     threshold = opt["THRESHOLD"]
     krho = opt["KRHO"]
     rcloud = opt["AP"]*opt["RBAR"]
-    parameters = read_snapshot(DataFolder,0).parameters
 
     if time == "last":
         time = (opt["NT"]-itstart) * dtt 
@@ -191,7 +306,7 @@ def plotgas(DataFolder,time,ax=pyplot.gca(),update = False,imobj=None,get_limits
     if False  :
         pyplot.savefig("test.png")
 
-    return result
+    return result,gridsize
 
 if __name__ == "__main__":
     import sys
@@ -204,6 +319,7 @@ if __name__ == "__main__":
     parser.add_argument("--output","-o",help = "output filename. Default: movie.mp4",default="movie.mp4")
     parser.add_argument("--fps",help="Desired frames per second. Default: 30", default = 30,type=float)
     parser.add_argument("--tmax","-t",help="Maximun simulation time to animate (Myr). Default: End of Simulation",default=None,type=float)
+    parser.add_argument("--boxsize",help="Boxsize around cluster (parsecs). Default: 4 times initial half mass radius",default=None,type=float)
     parser.add_argument("--movie_length",help="Movie length in seconds. Default=30",default=30,type=float)
     parser.add_argument("--cmap",help="Background image colormap (see matplotlib documentation), default=viridis",default="viridis")
     parser.add_argument("--scolor",help="Color for the stars (see matplotlib documentation). Default is taken from the maximum value in the colormap.",default=None)
@@ -211,7 +327,13 @@ if __name__ == "__main__":
     parser.add_argument("--colorbar",help="Show colorbar",action="store_true")
     parser.add_argument("--zlim",help="limits in the colorbar",nargs=2,type=float,default=None)
     parser.add_argument("--dpi",help="adjust dpi of video",type=float,default=None)
+    parser.add_argument("--compute_trajectory",help="if True, a file nbt-movie_trayectory.dat will be created with the position of the center and the size. This file can be used to follow the cluster during the movie.",action="store_true")
 
 
     args = parser.parse_args()
+
+    if args.compute_trajectory:
+        compute_trajectory(**vars(args))
+        exit()
+
     fancy_movie(**vars(args))
