@@ -156,7 +156,7 @@ class Snapshot(object):
         """ Dict. containing stellar coordinates:
         mass, x,y,z, vx,vy,vz,epot
         """
-        return self.__allstars[self.__allstars.name <= self.n]
+        return self.__allstars[ (self.__allstars.name <= self.n)*(self.__allstars.name > 0)  ]
 
     @property
     def unresolved_stars(self):
@@ -266,6 +266,7 @@ class Snapshot(object):
         n = 2*self._npairs + self._nsingles
         self._n = n
         self._time = self.__parameters["time"]
+        self._physical = False
 
         names = record[7]
         #select only stars, not centers of mass
@@ -283,18 +284,17 @@ class Snapshot(object):
         stars_dict["vx"] = X[0,:]
         stars_dict["vy"] = X[1,:]
         stars_dict["vz"] = X[2,:]
-        stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:],False)
+        stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:])
 
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
 
         self.__stars = allparticles[mask_stars]
         self.__allstars = allparticles
 
-        self._physical = False
 
-    def external_potential_at_point(self,x,y,z,physical=False):
+    def external_potential_at_point(self,x,y,z):
         """ Return background potential field at given point.
-        physical : if True x,y,z are on pc. default False (Nbody units)
+        physical : if True x,y,z are on pc. default False (Nbody units) (deprecated)
         
         returns:
           background potential at x,y,z
@@ -304,13 +304,16 @@ class Snapshot(object):
         G = 1.0
         if "MP" in self.inputfile.keys():
             Mgas = self.inputfile["MP"] - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
-            if physical : 
-                Mgas*=self.parameters["zmbar"]
+            Rcore = self.inputfile["AP"]
+            if self.physical : 
+                Mgas *= self.parameters["zmbar"]
+                Rcore *= self.parameters["rbar"]
                 G = 4.3020077853E-3
-            if self.inputfile["KZ"][14] == 5 and Mgas>0 : #TODO implement other external potentials
-                #power law potential
+            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
+                #truncated power law potential
                 r = numpy.sqrt(x**2 + y**2 + z**2 ) 
-                result = - Mgas*(r/self.inputfile["AP"])**(3.0 - self.inputfile["KRHO"] )/r
+                result = - G*Mgas*(r/Rcore)**(3.0 - self.inputfile["KRHO"] )/r
+                result[ r > Rcore ] = - G * Mgas / r[r > Rcore]
             else:
                 result = x*0.0
         else:
@@ -397,7 +400,7 @@ class Snapshot(object):
         primaries = numpy.concatenate((hard["primary"],wide["primary"] ))
         secondaries = numpy.concatenate((hard["secondary"],wide["secondary"] ))
         pairs = numpy.array(list( zip(primaries,secondaries)) ) 
-        higher_orders = numpy.where( pairs > self.n  )
+        higher_orders = numpy.where( (pairs > self.n) | ( pairs <= 0) )  
         #print(len(pairs),"len pairs")
         if len(pairs) == 0:
             return self.stars
@@ -420,13 +423,17 @@ class Snapshot(object):
         i_prim = numpy.isin(self.stars.name,primaries)
         prim_stars = self.stars[i_prim]
 
-        i_sec = numpy.isin(self.stars.name,secondaries)
-        sec_stars = self.stars[i_sec]
+        #i_sec = numpy.isin(self.stars.name,secondaries)
+        #sec_stars = self.stars[i_sec]
 
-        #print(i_prim.sum())
-        #print(i_sec.sum())
-
-
+        #TODO:  improve this, must be a better way
+        isec = []
+        for prim,sec  in  pairs:
+            #print(numpy.where(self.stars.name == sec)[0][0] )
+            ii = numpy.where(self.stars.name == sec)[0][0]
+            #print("[",prim,sec,"]", self.stars.name[ii],  ii)
+            isec.append( ii )
+        sec_stars = self.stars[ numpy.array(isec) ] 
 
         #Make sure they are in the correct order
         #isort = numpy.argsort(primaries)
@@ -444,7 +451,7 @@ class Snapshot(object):
         bdict["vx"]   = (prim_stars.mass*prim_stars.vx + sec_stars.mass*sec_stars.vx) /bdict["mass"]
         bdict["vy"]   = (prim_stars.mass*prim_stars.vy + sec_stars.mass*sec_stars.vy) /bdict["mass"]
         bdict["vz"]   = (prim_stars.mass*prim_stars.vz + sec_stars.mass*sec_stars.vz) /bdict["mass"]
-        bdict["epot"] = self.external_potential_at_point(bdict["x"],bdict["y"],bdict["z"],self.physical) 
+        bdict["epot"] = self.external_potential_at_point(bdict["x"],bdict["y"],bdict["z"]) 
 
         result_dict = dict()
         for key in singles.available_attributes():
@@ -461,7 +468,7 @@ class Particles(Methods,object):
     wrapped by the Snapshot object.
     """
     def __init__(self,stars_dict,center=[0,0,0]):
-        self.__n = len(stars_dict["name"]) #must be first parameter to be setted
+        self.__n = len(stars_dict["name"])  if hasattr(stars_dict["name"],"__len__" ) else 1  #must be first parameter to be setted
         self.__data = stars_dict
         l=[]
         for key in stars_dict:

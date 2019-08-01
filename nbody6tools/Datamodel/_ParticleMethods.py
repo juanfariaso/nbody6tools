@@ -9,8 +9,8 @@ class Methods():
     defined in Datamodel.__init__.py
     """
 
-    def half_mass_radius(self):
-        return Utilities.get_mass_radius(self,fraction=0.5)
+    def half_mass_radius(self,direction="average"):
+        return Utilities.get_mass_radius(self,fraction=0.5,direction=direction)
 
     def bound_indexes(self,verbose = False):
         """ Return bound positions using the snowballing method. Only works if stars are in physical units"""
