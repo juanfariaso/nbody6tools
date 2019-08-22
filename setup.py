@@ -19,7 +19,7 @@ ext = Extension(name = 'nbody6tools.ext',
 ext2 = Extension(name = 'nbody6tools.snowballing',
                  #extra_compile_args = ['-O3 -fopenmp','-O3'], #if using opemp
                  #extra_link_args = ["-lgomp"," "],
-                 extra_compile_args = ['-O0 -g -fbounds-check'," "],
+                 #extra_compile_args = ['-g -fbounds-check'," "],
                  sources = ['nbody6tools/ext/src/snowballing.f','nbody6tools/ext/src/snowballing.pyf'], # you may add several modules files under the same extension
                  )
 
