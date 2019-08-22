@@ -1,6 +1,7 @@
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots
 from nbody6tools.ext import qparameter
 from nbody6tools import Utilities
+from nbody6tools.Datamodel import get_binaries_from_files
 
 import numpy
 
@@ -103,13 +104,13 @@ def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
         result.append(Utilities.get_mass_radius(snapshot.stars,fraction=fr) )
     return result
 
-def mr_track(snapshot,mass_fraction=0.5):
+def mr_track(snapshot,mass_fraction=0.5,**args):
     snapshot.to_physical()
     radius = Utilities.get_mass_radius(snapshot.stars,fraction=mass_fraction) 
     mass = snapshot.stars.mass.sum()
     return radius,mass
 
-def bound_fraction(snapshot):
+def bound_fraction(snapshot,**args):
     """
     Compute bound mass fraction and basic statistics of bound stars
       return:
@@ -144,4 +145,35 @@ def virial_ratio(snapshot,bound = True,smoothing_length=0.01):
     stars.vy -= cmv[1]
     stars.vz -= cmv[2]
     return stars.virial_ratio(smoothing_length=smoothing_length)
+
+def binary_fraction(snapshot):
+    widefile = snapshot._snapshotfile.replace("conf.3_","bwdat.19_")  
+    hardfile = snapshot._snapshotfile.replace("conf.3_","bdat.9_") 
+    hard,wide = get_binaries_from_files(hardfile,widefile)
+    nb = len(hard["primary"]) + len(wide["primary"] ) 
+    return float(nb)/ (snapshot.n - nb ) 
+
+def binary_energy(snapshot):
+    widefile = snapshot._snapshotfile.replace("conf.3_","bwdat.19_")  
+    hardfile = snapshot._snapshotfile.replace("conf.3_","bdat.9_") 
+    hard,wide = get_binaries_from_files(hardfile,widefile)
+    ebin_hard = hard["ebin"].sum()
+    ebin_wide = hard["ebin"].sum()
+
+    return ebin_hard,ebin_wide,ebin_hard+ebin_wide
+
+def velocity_dispersion(snapshot) :
+    snapshot.to_physical()
+    stars = snapshot.unresolve_all()
+    return stars.velocity_dispersion()
+
+def bound_statistics(snapshot):
+    snapshot.to_physical()
+    stars = snapshot.unresolve_all()
+    boundset = stars.bound_subset()
+
+    fbound = boundset.mass.sum()/stars.mass.sum()
+    rh = boundset.half_mass_radius()
+    vdisp  =  boundset.velocity_dispersion()
+    return fbound,rh,vdisp
 

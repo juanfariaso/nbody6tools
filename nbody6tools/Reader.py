@@ -23,6 +23,7 @@ def get_times(folder,dtype=float):
     l = numpy.array(l,dtype=dtype)
     return l
 
+
 def read_snapshot(folder,snapshot=0,inputfilename="input"):
     if folder[-1] != "/" : folder +="/"
     opt = Datamodel.parse_inputfile(folder+"/"+inputfilename)
