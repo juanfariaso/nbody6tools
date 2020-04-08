@@ -23,6 +23,8 @@ ext2 = Extension(name = 'nbody6tools.snowballing',
                  sources = ['nbody6tools/ext/src/snowballing.f','nbody6tools/ext/src/snowballing.pyf'], # you may add several modules files under the same extension
                  )
 
+dependencies = ["scipy>=1.2"]
+
 setup(
      name='nbody6tools',  
      version='0.1',
@@ -34,6 +36,7 @@ setup(
      long_description_content_type="text/markdown",
      packages=setuptools.find_packages(),
      ext_modules = [ext,ext2],
+     install_requires = dependencies
  )
 
 

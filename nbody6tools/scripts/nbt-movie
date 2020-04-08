@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from __future__ import print_function
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,get_times
 from nbody6tools.Datamodel import parse_inputfile
 import matplotlib

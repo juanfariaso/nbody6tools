@@ -39,6 +39,10 @@ def read_snapshot(folder,snapshot=0,inputfilename="input"):
     return Datamodel.Snapshot(snapshotfile,inputfile)
 
 def read_binaries(folder,snapshot=0,inputfilename="input"):
+    """
+    Returns two dictionaries with binary properties
+    regularized binaries , wide binaries
+    """
     #TODO raise error when needed kz option is not set
     times = get_times(folder,dtype=str)
     widefile = "%s/bwdat.19_%s"%(folder,times[snapshot])
