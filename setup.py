@@ -38,9 +38,7 @@ setup(
      long_description_content_type="text/markdown",
      packages=setuptools.find_packages(),
      ext_modules = [ext,ext2],
-     install_requires = dependencies
+     install_requires = dependencies,
  )
-
-
 
 #setup(ext_modules = [flib] )

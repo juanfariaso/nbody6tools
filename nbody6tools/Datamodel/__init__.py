@@ -136,9 +136,11 @@ class Snapshot(object):
       self.reorder(isort)   : Sort stars according to the 'isort' list (e.g. result of numpy.argsort(). If nothing specified, sort by name.
     """
 
-    def __init__(self,snapshotfile,inputfile) :
+    def __init__(self,snapshotfile,inputfile,singlefile=False,snapshot=1) :
         self._snapshotfile = snapshotfile
         self._inputfile = parse_inputfile(inputfile)
+        self.__single_file = singlefile
+        self.__snapshot=snapshot
 
         record = self.__read_snapshot(snapshotfile)
         self.__parameters = dict()
@@ -570,6 +572,3 @@ class Particle(object):
         self.__data = star_dict
     def __str__(self):
         return "Particle Object: %s "% str(self.__data)
-
-
-        
