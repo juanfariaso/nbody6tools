@@ -31,7 +31,7 @@ def get_globals(folder):
         result[h] = data[:,i]
     return result
 
-def parse_inputfile(inputfilename,**kw):
+def parse_inputfile(inputfilename=inputFile,**kw):
     """%s
     """%Datamodel.parse_inputfile.__doc__
     return Datamodel.parse_inputfile(inputfilename,**kw)
