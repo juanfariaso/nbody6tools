@@ -2,8 +2,6 @@
 from setuptools import setup
 import setuptools
 
-##testing
-
 setuptools.find_packages(),
 with open("README.md", "r") as fh:
      long_description = fh.read()

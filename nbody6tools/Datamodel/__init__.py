@@ -140,12 +140,13 @@ class Snapshot(object):
         self._snapshotfile = snapshotfile
         self._inputfile = parse_inputfile(inputfile)
         self.__single_file = singlefile
-        self.__snapshot=snapshot
-
-        record = self.__read_snapshot(snapshotfile)
+        self.snapshot = snapshot
+        self.__recordnumber = 0 if singlefile else snapshot
+        self.__recordfile = None
         self.__parameters = dict()
-        self.__structure(record)
-        self.__record = record
+        self._physical = False
+        self.__read_snapshot()
+
 
     @property
     def parameters(self):
@@ -210,15 +211,23 @@ class Snapshot(object):
         """
         return self._physical
 
+    def step(self,n=1):
+        """ 
+        Advance to next snapshot. Useful when the snapshotfile.
+        Usefull when there is a single snapshotfile.
+        """
+        if not self.__single_file:
+            raise Exception("Snapshot.step function only works with singlefile=True")
+        self.snapshot += n
+        self.__read_snapshot()
+        pass
 
-    def __read_snapshot(self,name):
+    def __read_record(self):
       kz = self.inputfile["KZ"]
-      f = FortranFile(name,"r")
-      datafile = open(name,"r")
-      NTOT,MODEL,NDRUN,NK = tuple(f.read_ints(dtype=numpy.int32))
+      NTOT,MODEL,NDRUN,NK = tuple(self.__recordfile.read_ints(dtype=numpy.int32))
       self._ntot = NTOT
       if not kz[50] == 1 : 
-         record = f.read_record(
+         record = self.__recordfile.read_record(
                  numpy.dtype( (numpy.float32,NK)   ) #AS
                 ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
                 ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
@@ -229,7 +238,7 @@ class Snapshot(object):
                 ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
               )
       if kz[50] == 1 : 
-         record = f.read_record(
+         record = self.__recordfile.read_record(
                  numpy.dtype( (numpy.float32,NK)   ) #AS
                 ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
                 ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
@@ -241,6 +250,18 @@ class Snapshot(object):
                 ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
               )
       return record
+
+    def __read_snapshot(self):
+      if  self.__recordfile is None:
+          self.__recordfile = FortranFile(self._snapshotfile,"r") 
+      for i in range(self.__recordnumber,self.snapshot+1):
+          record = self.__read_record()
+          self.__recordnumber += 1
+      physical = self.physical
+      self.__structure(record)
+      self.__record = record
+      if physical:
+          self.to_physical()
 
     def __structure(self,record):
         self.__parameters["time"] = record[0][0]
@@ -292,7 +313,6 @@ class Snapshot(object):
 
         self.__stars = allparticles[mask_stars]
         self.__allstars = allparticles
-
 
     def external_potential_at_point(self,x,y,z):
         """ Return background potential field at given point.
