@@ -139,7 +139,7 @@ class Snapshot(object):
     def __init__(self,snapshotfile,inputfile,singlefile=False,snapshot=1) :
         self._snapshotfile = snapshotfile
         self._inputfile = parse_inputfile(inputfile)
-        self.__single_file = singlefile
+        self._singlefile = singlefile
         self.snapshot = snapshot
         self.__recordnumber = 0 if singlefile else snapshot
         self.__recordfile = None
@@ -211,12 +211,19 @@ class Snapshot(object):
         """
         return self._physical
 
+    @property
+    def singlefile(self):
+        """ bool, True : All snapshot are stored in one file (use step to advance)
+                  False: Snapshot in different files. Provide a file to advance.
+        """
+        return self._singlefile
+
     def step(self,n=1):
         """ 
         Advance to next snapshot. Useful when the snapshotfile.
         Usefull when there is a single snapshotfile.
         """
-        if not self.__single_file:
+        if not self._singlefile:
             raise Exception("Snapshot.step function only works with singlefile=True")
         self.snapshot += n
         self.__read_snapshot()
