@@ -10,24 +10,18 @@ import numpy
 
 #check Datamodel.__init__.py for the original file
 class Snapshot(Snapshot):
-  def __read_snapshot(self,name):
-        kz = self.inputfile["KZ"]
-        f = FortranFile(name,"r")
-        print(self.__snapshot)
-        for _i in range(self.__snapshot+1):
-            NTOT,MODEL,NDRUN,NK = tuple(f.read_ints(dtype=numpy.int32))
-            self._ntot = NTOT
-            record = f.read_record(
-                     numpy.dtype( (numpy.float32,NK)   ) #AS
-                    ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
-                    ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
-                    ,numpy.dtype( (numpy.float32,NTOT) ) #xns
-                    ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#x
-                    ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#v
-                    ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
-                    ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
-                    ,numpy.dtype( (numpy.float32,NTOT) ) #custom column
-                  )
-        return record
-
-
+    def __read_record(self):
+      NTOT,MODEL,NDRUN,NK = tuple(self.__recordfile.read_ints(dtype=numpy.int32))
+      self._ntot = NTOT
+      record = self.__recordfile.read_record(
+              numpy.dtype( (numpy.float32,NK)   ) #AS
+             ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
+             ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
+             ,numpy.dtype( (numpy.float32,NTOT) ) #xns
+             ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#x
+             ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#v
+             ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
+             ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
+             ,numpy.dtype( (numpy.float32,NTOT) ) #time
+           )
+      return record
