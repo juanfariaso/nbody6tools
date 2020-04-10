@@ -13,8 +13,9 @@ except (ImportError):
     from nbody6tools.Datamodel import Snapshot
 
 Options = nbody6tools.options
-singleFile = Options.getboolean("SNAPSHOTS","singlefile",fallback=False)
-snapshotFile = Options.get("SNAPSHOTS","snapshotFile",fallback="conf.3_" )
+singleFile = Options.getboolean("CONFIG","singlefile",fallback=False)
+snapshotFile = Options.get("CONFIG","snapshotFile",fallback="conf.3_" )
+inputFile = Options.get("CONFIG","inputFile",fallback="input" )
 
 
 def get_globals(folder):
@@ -30,7 +31,7 @@ def parse_inputfile(inputfilename,**kw):
     """%Datamodel.parse_inputfile.__doc__
     return Datamodel.parse_inputfile(inputfilename,**kw)
 
-def get_number_of_snapshots(folder,inputfilename,**kw):
+def get_number_of_snapshots(folder,inputfilename=inputFile,**kw):
     glfile = get_globals(folder)
     inputfile = parse_inputfile(inputfilename)
     return int(len(glfile)  / inputfile["NFIX"] ) + 1
@@ -41,7 +42,7 @@ def get_times(folder,dtype=float):
     l = numpy.array(l,dtype=dtype)
     return l
 
-def read_snapshot(folder,snapshot=0,inputfilename="input",singlefile=singleFile,
+def read_snapshot(folder,snapshot=0,inputfilename=inputFile,singlefile=singleFile,
         snapshotfile = snapshotFile):
 
     inputfile ="%s/%s"%(folder,inputfilename)
@@ -63,7 +64,7 @@ def read_snapshot(folder,snapshot=0,inputfilename="input",singlefile=singleFile,
 
     return Snapshot("%s/%s"%(folder,snapshotfile),inputfile,singlefile,snapshot=snapshot)
 
-def read_binaries(folder,snapshot=0,inputfilename="input"):
+def read_binaries(folder,snapshot=0,inputfilename=inputFile):
     """
     Returns two dictionaries with binary properties
     regularized binaries , wide binaries
