@@ -13,28 +13,37 @@ except (ImportError):
     from nbody6tools.Datamodel import Snapshot
 
 Options = nbody6tools.options
-singlefile = Options.getboolean("SNAPSHOTS","singlefile")
+singleFile = Options.getboolean("SNAPSHOTS","singlefile",fallback=False)
+snapshotFile = Options.get("SNAPSHOTS","snapshotFile",fallback="conf.3_" )
+
+
+def get_globals(folder):
+    "find last block of globals that is good"
+    x = open("global.30","r").readlines()
+    it = [ i for i in range(len(x)) if "TIME" in x[i] ]  #find headers if more than one
+    header = x[it-1] 
+    data = x[it[-1]+1:] 
 
 def parse_inputfile(inputfilename,**kw):
     """%s
     """%Datamodel.parse_inputfile.__doc__
     return Datamodel.parse_inputfile(inputfilename,**kw)
 
-def get_number_of_snapshots(folder):
-    l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"conf.3*") ]
+def get_number_of_snapshots(folder,snapshotfile=snapshotFile,singlefile=singleFile):
+    l=[x.replace("%s%s"%(folder,snapshotfile),"") for x in glob.glob(folder+"%s*"%snapshotFile ) ]
     l.sort(key=float)
     if len(l) == 0:
         raise ValueError("No snapshots in this folder.")
     return len(l)
 
 def get_times(folder,dtype=float):
-    l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"conf.3*") ]
+    l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"%s*"%snapshotFile) ]
     l.sort(key=float)
     l = numpy.array(l,dtype=dtype)
     return l
 
 def read_snapshot(folder,snapshot=0,inputfilename="input",singlefile=singlefile,
-        snapshotfile = "conf.3"):
+        snapshotfile = snapshotFile):
 
     inputfile ="%s/%s"%(folder,inputfilename)
 
@@ -43,12 +52,12 @@ def read_snapshot(folder,snapshot=0,inputfilename="input",singlefile=singlefile,
         opt = Datamodel.parse_inputfile(folder+"/"+inputfilename)
         kz = opt["KZ"]
        
-        l=[x.replace("%sconf.3_"%folder,"") for x in glob.glob(folder+"%s*"%snapshotfile ) ]
+        l=[x.replace("%s%s"%(folder,snapshotfile),"") for x in glob.glob(folder+"%s*"%snapshotfile ) ]
         l.sort(key=float)
         if len(l) == 0:
             raise ValueError("No snapshots in this folder.")
 
-        snapshotfile = "conf.3_%s"%l[snapshot]
+        snapshotfile = "%s%s"%(snapshotfile,l[snapshot])
     else:
         if not os.path.isfile( "%s/%s"%(folder,snapshotfile)):
             raise FileNotFoundError("Snapshot file %s/%s not found"%(folder,snapshotfile))

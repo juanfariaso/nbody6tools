@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from __future__ import print_function
-from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,get_times
+from nbody6tools.Reader import read_snapshot,get_times
 from nbody6tools.Datamodel import parse_inputfile
 import matplotlib
 matplotlib.use("agg")
@@ -72,7 +72,6 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
     times = get_times(DataFolder)*sn0.parameters["tscale"]
     if tmax is None:
         tmax = times[-1]
-    #ntot = get_number_of_snapshots(DataFolder)
     times = times[times<= tmax ]
     ntot = len(times)
 
