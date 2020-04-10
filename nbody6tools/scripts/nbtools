@@ -10,8 +10,7 @@ def executable_options():
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(help='Available Commands')
 
-    parser.add_argument("folder",metavar="FOLDER",help="simulation folder", default="./") 
-    parser.add_argument("-o","--output",help="output file. Default shows without saving", default=None) 
+    parser.add_argument("folder",metavar="FOLDER",help="simulation folder", default="./",nargs="?") 
 
     #animate
     parse_animate = subparsers.add_parser("animate",help="shows animation of simulation, may be slow in big clusters.")
@@ -23,12 +22,14 @@ def executable_options():
             choices=["xy","yx","xz","zx","yz","zy"])
     parse_animate.add_argument("--dpi",help="dpi for animated output. Default 'None'",default = None)
     parse_animate.add_argument("--show_bound",help="Show bound star in red. Dfault False",default = False,action="store_true")
+    parse_animate.add_argument("-o","--output",help="output file. Defaults shows animation without saving. ", default=None) 
 
     #evol
     parse_evol = subparsers.add_parser("evol",help="shows the evolution of a parameter")
     parse_evol.set_defaults(fun = Plots.evol )
     parse_evol.add_argument("-p","--parameter",help="paramter to show. Default fbin.",default = "fbin",
             choices=["fbin","lagr"])
+    parse_evol.add_argument("-o","--output",help="output file (png,pdf,jpg). Default shows evolution. ", default=None) 
     
     #plot
     parse_evol = subparsers.add_parser("plot",help="plot position[velocity] of stars")
@@ -51,6 +52,7 @@ def executable_options():
             help="show documentation of function")
     parse_compute.add_argument("--overwrite",action="store_true",
             help="if specified, overwrite output. Else raise error if file exists.")
+    parse_evol.add_argument("-o","--output",help="output file. Default use name of the function used, and uses current folder. ", default=None) 
 
     return parser
    
