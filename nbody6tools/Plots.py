@@ -6,7 +6,7 @@ if r != 0:
 from matplotlib import pyplot
 from matplotlib import animation
 import numpy
-from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile
+from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile,Options
 
 def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_bound=False,**kw):
     """
@@ -18,9 +18,17 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     ##      - make it look better, but make sure is fast.
     print("showbound",show_bound)
 
-    def update_line(num,line,bline, folder):
-            sn = read_snapshot(folder,num)
+    def update_line(num,line,bline,folder,sn0=None):
+
+            if sn0 is None:
+                sn = read_snapshot(folder,num)
+            else:
+                if num>0:
+                    sn0.step()
+                sn = sn0
+
             sn.to_physical()
+
             x = sn.stars[xy[0]]
             y = sn.stars[xy[1]]
             s = sn.stars["mass"]/1
@@ -32,11 +40,12 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
                 yb = bound_set[xy[1]]
                 bline.set_offsets(numpy.c_[xb,yb])
                 bline.set_sizes(s)
-            #print("snapshot: ", num) #TODO: Put nice progress info
+            print("snapshot: ", num, sn.time) #TODO: Put nice progress info
             #title.set_text('Time %.2f Myr'%(sn.parameters["time"]*sn.parameters["tscale"] ) )
             return line,bline
     opt = parse_inputfile(folder+"input")
     nsnap = get_number_of_snapshots(folder)
+    sn0 = read_snapshot(folder,0) if Options.getboolean("CONFIG","singleFile") else None
     fig1 = pyplot.gcf()
     l = pyplot.scatter([],[],[],c="k",alpha=0.8)
     bl = pyplot.scatter([],[],[],c="r",alpha=0.8)
@@ -46,13 +55,12 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
         size = boxsize/2.0
     pyplot.xlim(-size, size)
     pyplot.ylim(-size, size)
-
     pyplot.xlabel( "%s (pc)"%xy[0] )
     pyplot.ylabel( "%s (pc)"%xy[1] )
     ax = pyplot.gca()
     ax.set_aspect("equal")
     #title = ax.set_title("Time : %.2f"%0.0) #not working
-    movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,bl,folder),
+    movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,bl,folder,sn0),
                                        interval=10, blit=True)
     if output is None :
         pyplot.show()
@@ -72,7 +80,6 @@ def evol(folder,output=None,parameter="fbin",**kw):
     return
 
 def plot(folder,output=None,snapshot=1,projection="xy",space="position",ax=pyplot.gca(),**kw):
-
     st = read_snapshot(folder,snapshot)
     st.to_physical()
     if space == "position" : 

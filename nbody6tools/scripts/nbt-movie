@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,get_times
+from __future__ import print_function
+from nbody6tools import Reader
+from nbody6tools.Reader import read_snapshot,get_times
 from nbody6tools.Datamodel import parse_inputfile
 import matplotlib
 matplotlib.use("agg")
@@ -7,11 +9,12 @@ from matplotlib import animation,pyplot,cm
 from scipy.io import FortranFile
 from scipy.signal import savgol_filter
 import numpy
+import os
 
 
 def compute_trajectory(DataFolder="./",**kw):
     times = get_times(DataFolder)
-    outfile = open("nbt-movie_trayectory.dat","w")
+    outfile = open("%s/camera.dat"%DataFolder,"w")
     for i in range(len(times)) :
         sn = read_snapshot(DataFolder,i) 
         x,y,z = sn.parameters["rdens"]*sn.parameters["rbar"]
@@ -22,13 +25,13 @@ def compute_trajectory(DataFolder="./",**kw):
 
     #smooth the trajectory
     window, polyorder = 51,2
-    I,x,y,z,size = numpy.loadtxt("nbt-movie_trayectory.dat").T
+    I,x,y,z,size = numpy.loadtxt("%s/camera.dat"%DataFolder).T
     xs = savgol_filter(x,window,polyorder)
     ys = savgol_filter(y,window,polyorder)
     zs = savgol_filter(z,window,polyorder)
     sizes = savgol_filter(size,window,polyorder)
 
-    outfile = open("nbt-movie_trayectory_smooth.dat","w" )
+    outfile = open("%s/camera.dat"%DataFolder,"w" )
     for i,x,y,z,size in zip(I,xs,ys,zs,sizes) : 
         outfile.write("%i  %.5g    %.5g    %.5g   %.5g \n"%(i,x,y,z,size) ) 
     outfile.close()
@@ -48,7 +51,7 @@ def interpolate_state(t,t1,t2,State1,State2 ) :
     f = float(t - t1) / float(t2-t1 )
     return State1*(1.-f) + State2*f
 
-def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length=50,
+def fancy_movie(DataFolder,inputfile = Reader.inputFile ,output = None,fps=10,movie_length=50,
         tmax=None,cmap="magma",
         scolor=None,zlog = False, zlim=None,
         colorbar=False,dpi=None,
@@ -65,17 +68,16 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
     #if max_movie_time is None:
     max_movie_time = movie_length
 
-    opt = parse_inputfile(DataFolder+"/"+inputfile)
+    opt = Reader.parse_inputfile(DataFolder+"/"+inputfile)
+    gl = Reader.get_globals(DataFolder)
 
     sn0 = read_snapshot(DataFolder,inputfilename=inputfile)
-    times = get_times(DataFolder)*sn0.parameters["tscale"]
+    times = Reader.get_times(DataFolder)
+    rhalf = gl["RSCALE[PC]"][::opt["NFIX"]]
     if tmax is None:
         tmax = times[-1]
-    #ntot = get_number_of_snapshots(DataFolder)
     times = times[times<= tmax ]
     ntot = len(times)
-
-
     ### setup the plot with empty data
     fig = pyplot.figure()
     drawgas = opt["KZ"][50] > 0 
@@ -100,14 +102,13 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
     pyplot.xlabel("x (pc)")
     pyplot.ylabel("y (pc)")
     if boxsize is None:
-        boxsize = sn0.parameters["rscale"]*4*sn0.parameters["rbar"]
+        boxsize = rhalf[0]*4
 
     #TODO make this line optional
 
     pyplot.xlim( (-boxsize/2,boxsize/2) )
     pyplot.ylim( (-boxsize/2,boxsize/2) )
     pyplot.gca().set_aspect("equal")
-
     ###
 
     frames = numpy.linspace(0,ntot,fps*movie_length)
@@ -119,12 +120,13 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
 
     i_prev = -1
     StNew = []
-    Ic,xc,yc,zc,sizec = numpy.loadtxt("nbt-movie_trayectory_smooth.dat").T
+    #Ic,xc,yc,zc,sizec = numpy.loadtxt("nbt-movie_trayectory_smooth.dat").T
+    camera = os.path.isfile("%s/camera.dat")
 
     #with writer.saving(fig,output,400): 
         #for frame in frames[0: fps*max_movie_time ] :
     def adjust_camera(i,ax = pyplot.gca(),mode="data") :
-        Ic,xc,yc,zc,sizec = numpy.loadtxt("nbt-movie_trayectory_smooth.dat").T
+        Ic,xc,yc,zc,sizec = numpy.loadtxt("%s/camera.dat"%DataFolder).T
         X = dict()
         iprev = int(numpy.floor(i) )
         inext = int(numpy.ceil(i) )
@@ -179,7 +181,10 @@ def fancy_movie(DataFolder,inputfile = "input",output = None,fps=10,movie_length
                 StNew  = State1[ len(State0):]  #not yet used
                 #print("inew Nnew, iold,Nold",i_next, len(State1) , i_prev,len(State0) )
 
-            xc,yc,sizec = adjust_camera(frame,ax=pyplot.gca(),mode="data")
+            if camera:
+                xc,yc,sizec = adjust_camera(frame,ax=pyplot.gca(),mode="data")
+            else:
+                xc,yc = 0,0
             sim_time = interpolate_state(frame,i_prev,i_next,time0,time1)
 
             if drawgas:

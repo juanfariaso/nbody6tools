@@ -136,14 +136,17 @@ class Snapshot(object):
       self.reorder(isort)   : Sort stars according to the 'isort' list (e.g. result of numpy.argsort(). If nothing specified, sort by name.
     """
 
-    def __init__(self,snapshotfile,inputfile) :
+    def __init__(self,snapshotfile,inputfile,singlefile=False,snapshot=1) :
         self._snapshotfile = snapshotfile
         self._inputfile = parse_inputfile(inputfile)
-
-        record = self.__read_snapshot(snapshotfile)
+        self._singlefile = singlefile
+        self.snapshot = snapshot
+        self.__recordnumber = 0 if singlefile else snapshot
+        self.__recordfile = None
         self.__parameters = dict()
-        self.__structure(record)
-        self.__record = record
+        self._physical = False
+        self.__read_snapshot()
+
 
     @property
     def parameters(self):
@@ -208,15 +211,30 @@ class Snapshot(object):
         """
         return self._physical
 
+    @property
+    def singlefile(self):
+        """ bool, True : All snapshot are stored in one file (use step to advance)
+                  False: Snapshot in different files. Provide a file to advance.
+        """
+        return self._singlefile
 
-    def __read_snapshot(self,name):
+    def step(self,n=1):
+        """ 
+        Advance to next snapshot. Useful when the snapshotfile.
+        Usefull when there is a single snapshotfile.
+        """
+        if not self._singlefile:
+            raise Exception("Snapshot.step function only works with singlefile=True")
+        self.snapshot += n
+        self.__read_snapshot()
+        pass
+
+    def __read_record(self):
       kz = self.inputfile["KZ"]
-      f = FortranFile(name,"r")
-      datafile = open(name,"r")
-      NTOT,MODEL,NDRUN,NK = tuple(f.read_ints(dtype=numpy.int32))
+      NTOT,MODEL,NDRUN,NK = tuple(self.__recordfile.read_ints(dtype=numpy.int32))
       self._ntot = NTOT
       if not kz[50] == 1 : 
-         record = f.read_record(
+         record = self.__recordfile.read_record(
                  numpy.dtype( (numpy.float32,NK)   ) #AS
                 ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
                 ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
@@ -227,7 +245,7 @@ class Snapshot(object):
                 ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
               )
       if kz[50] == 1 : 
-         record = f.read_record(
+         record = self.__recordfile.read_record(
                  numpy.dtype( (numpy.float32,NK)   ) #AS
                 ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
                 ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
@@ -239,6 +257,18 @@ class Snapshot(object):
                 ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
               )
       return record
+
+    def __read_snapshot(self):
+      if  self.__recordfile is None:
+          self.__recordfile = FortranFile(self._snapshotfile,"r") 
+      for i in range(self.__recordnumber,self.snapshot+1):
+          record = self.__read_record()
+          self.__recordnumber += 1
+      physical = self.physical
+      self.__structure(record)
+      self.__record = record
+      if physical:
+          self.to_physical()
 
     def __structure(self,record):
         self.__parameters["time"] = record[0][0]
@@ -290,7 +320,6 @@ class Snapshot(object):
 
         self.__stars = allparticles[mask_stars]
         self.__allstars = allparticles
-
 
     def external_potential_at_point(self,x,y,z):
         """ Return background potential field at given point.
@@ -570,6 +599,3 @@ class Particle(object):
         self.__data = star_dict
     def __str__(self):
         return "Particle Object: %s "% str(self.__data)
-
-
-        
