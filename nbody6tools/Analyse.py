@@ -55,13 +55,13 @@ def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g"
         function.__name__,str(args) ) )
     resultfile.write("# time   time[Myr]  results  \n")
     for i in range(ns):
-        print("Snapshot: %i/%i    "%(i,ns),end="")
+        print("Snapshot: %i/%i    "%(i,ns),end="\r")
         sn = read_snapshot(folder,i,inputfilename="input")
         t = sn.parameters["time"]
         tscale = sn.parameters["tscale"]
         resultfile.write( (fmt+"  "+fmt)%( t,t*tscale ) )
         fout = function(sn,**kwargs)
-        print(str(fout)+"\r")
+        #print(str(fout)+"\r")
         nout = len(fout) if hasattr(fout,"__len__") else 1
         if nout > 1:
             for j in range(nout):
@@ -69,6 +69,7 @@ def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g"
         else:
             resultfile.write( " "+fmt%(fout) )
         resultfile.write("\n")
+    print("\n")
     resultfile.close()
 
 def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
