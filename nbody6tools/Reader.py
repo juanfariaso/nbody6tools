@@ -20,7 +20,7 @@ inputFile = Options.get("CONFIG","inputFile",fallback="input" )
 
 def get_globals(folder):
     "find last block of globals that is good"
-    x = open("global.30","r").readlines()
+    x = open("%s/global.30"%folder,"r").readlines()
     it = [ i for i in range(len(x)) if "TIME" in x[i] ]  #find headers if more than one
     #header = x[it[-1]] 
     header = "TIME[NB] TIME[Myr] TCR[Myr] DE BE(3) RSCALE[PC] RTIDE[PC] RDENS[PC] RC[PC]  RHOD[M*] RHOM[M*] MC[M*] CMAX <Cn> Ir/R RCM VCM AZ EB/E EM/E VRMS N NS NPAIRS NUPKS NPKS NMERGE MULT <NB> NC NESC NSTEPI NSTEPB NSTEPR NSTEPU NSTEPT NSTEPQ NSTEPC NBLOCK NBLCKR NNPRED NIRRF NBCORR NBFLUX NBFULL NBVOID NICONV NLSMIN NBSMIN NBDIS NBDIS2 NCMDER NFAST NBFAST NKSTRY NKSREG NKSHYP NKSPER NKSMOD NTTRY NTRIP NQUAD NCHAIN NMERG NEWHI"
@@ -41,7 +41,7 @@ def get_number_of_snapshots(folder,inputfilename=inputFile,**kw):
 
 def get_times(folder,nbody=False,inputfilename=inputFile):
     glfile = get_globals(folder)
-    inputfile = parse_inputfile(inputfilename)
+    inputfile = parse_inputfile("%s/%s"%(folder,inputfilename) )
     key = "TIME[NB]" if nbody else "TIME[Myr]"
     return glfile[key][0::inputfile["NFIX"] ]
 
