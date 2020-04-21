@@ -94,6 +94,8 @@ def executable_options():
                                "provided, output will be placed on each "
                                "folder, otherwise output is placed in the " 
                                "current working directory. ")
+    parse_compute.add_argument("--stdout", default=None,
+                               help="redirect stdout to file.")
     parse_compute.add_argument("folders", metavar="FOLDER",
                                help="simulation folder", default=["./"], 
                                nargs="*")

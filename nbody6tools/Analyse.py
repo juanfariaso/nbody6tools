@@ -2,12 +2,14 @@ from nbody6tools.Reader import read_snapshot,get_number_of_snapshots
 from nbody6tools.ext import qparameter
 from nbody6tools import Utilities
 from nbody6tools.Datamodel import get_binaries_from_files
+import sys
 
 import numpy
 
 local_variables = locals()
 
-def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g",doc=False,**kw):
+def compute(folders,function,args=None,output=None,overwrite=False,
+            fmt ="%10.7g",doc=False,stdout=None,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
@@ -28,6 +30,11 @@ def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g
     if doc:
         print(function.__doc__)
         return
+
+    scriptmode = False
+    if stdout is not None:
+        sys.stdout = open(stdout,"a")
+        scriptmode=True
 
     kwargs = dict()
     if args is not None:
@@ -65,7 +72,8 @@ def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g
             function.__name__,str(args) ) )
         resultfile.write("# time   time[Myr]  results  \n")
         for i in range(ns):
-            print("Snapshot: %i/%i    "%(i,ns),end="\r")
+            if not scriptmode:
+                print("Snapshot: %i/%i    "%(i,ns),end="\r")
             try:
                 sn = read_snapshot(folder,i,inputfilename="input")
             except:
@@ -82,7 +90,11 @@ def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g
             else:
                 resultfile.write( " "+fmt%(fout) )
             resultfile.write("\n")
-        print("\n")
+        if not scriptmode:
+            print("\n")
+        else:
+            print("%s Done"%outputfile)
+            sys.stderr.flush()
         resultfile.close()
 
 def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
