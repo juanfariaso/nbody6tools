@@ -599,3 +599,5 @@ class Particle(object):
         self.__data = star_dict
     def __str__(self):
         return "Particle Object: %s "% str(self.__data)
+    def __repr__(self):
+        return "Particle Object: %s "% str(self.__data)

@@ -10,10 +10,17 @@ class Methods():
     """
 
     def half_mass_radius(self,direction="average"):
-        return Utilities.get_mass_radius(self,fraction=0.5,direction=direction)
+        return self.mass_radius(self,fraction=0.5,direction=direction)
+
+    def mass_radius(self,direction="average",fraction=0.5):
+        return Utilities.get_mass_radius(self, fraction=fraction,
+                                         direction=direction)
 
     def bound_indexes(self,verbose = False):
-        """ Return bound positions using the snowballing method. Only works if stars are in physical units"""
+        """ 
+        Return bound positions using the snowballing method. Only works if
+        stars are in physical units
+        """
         #epot = self.x*0.0 # background potential #TODO implement
         parts=numpy.array([self.x,self.y,self.z,self.vx,self.vy,self.vz,self.mass,self.epot],dtype=numpy.float64) #must be float64
         rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64 )
@@ -81,5 +88,4 @@ class Methods():
         return vx,vy,vz
 
         
-
 

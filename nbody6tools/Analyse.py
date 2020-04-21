@@ -52,8 +52,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g
         ns = get_number_of_snapshots(folder)
         if output is None:
             outputfile =  function.__name__+".dat"
-        if len(folders) > 1 :
-            outputfile = "%s/%s"%(folder,outputfile)
+        outputfile = "%s/%s"%(folder,outputfile)
 
         mode = "w" if overwrite else "x"
         try:
@@ -191,3 +190,14 @@ def bound_statistics(snapshot):
     rh = boundset.half_mass_radius()
     vdisp  =  boundset.velocity_dispersion()
     return fbound,rh,vdisp
+
+def number_density(snapshot,mass_fraction_radii = 0.5) :
+    """
+    Compute the number density on a radius given by mass_fraction_radius.
+    Default : 0.5, i.e. Half mass radius.
+    returns : number density at given radii in stars / pc**3
+    """
+    snapshot.to_physical()
+    stars = snapshot.unresolve_all()
+    r = stars.mass_radius(fraction=mass_fraction_radii) 
+    return len(stars) * 3./4./numpy.pi/r**3 
