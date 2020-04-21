@@ -7,7 +7,7 @@ import numpy
 
 local_variables = locals()
 
-def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g",doc=False,**kw):
+def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g",doc=False,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
@@ -29,7 +29,6 @@ def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g"
         print(function.__doc__)
         return
 
-    #parse the extra arguments if any
     kwargs = dict()
     if args is not None:
         for s in args:
@@ -42,35 +41,43 @@ def compute(folder,function,args=None,output=None,overwrite=False,fmt = "%10.7g"
                     #single float case
                     kwargs[k] = float(v)
             except ValueError:
-                raise("arg can only be a float or comma separated floats")
+                raise ValueError("arg can only be a float or "
+                                 "comma separated floats")
 
-    ns = get_number_of_snapshots(folder)
-    if output is None:
-        output =  function.__name__+".dat"
+    for folder in folders:
+        #parse the extra arguments if any
+        if len(folders) > 1:
+            print("Working on folder %s"%folder)
 
-    mode = "w" if overwrite else "x"
-    resultfile =  open(output,mode,1)   #fail if already exists for safety
+        ns = get_number_of_snapshots(folder)
+        if output is None:
+            outputfile =  function.__name__+".dat"
+        if len(folders) > 1 :
+            outputfile = "%s/%s"%(folder,outputfile)
 
-    resultfile.write("# function %s with extra arguments: %s \n"%(
-        function.__name__,str(args) ) )
-    resultfile.write("# time   time[Myr]  results  \n")
-    for i in range(ns):
-        print("Snapshot: %i/%i    "%(i,ns),end="\r")
-        sn = read_snapshot(folder,i,inputfilename="input")
-        t = sn.parameters["time"]
-        tscale = sn.parameters["tscale"]
-        resultfile.write( (fmt+"  "+fmt)%( t,t*tscale ) )
-        fout = function(sn,**kwargs)
-        #print(str(fout)+"\r")
-        nout = len(fout) if hasattr(fout,"__len__") else 1
-        if nout > 1:
-            for j in range(nout):
-                resultfile.write( " "+fmt%(fout[j] ) )
-        else:
-            resultfile.write( " "+fmt%(fout) )
-        resultfile.write("\n")
-    print("\n")
-    resultfile.close()
+        mode = "w" if overwrite else "x"
+        resultfile =  open(outputfile,mode,1)   #fail if already exists for safety
+
+        resultfile.write("# function %s with extra arguments: %s \n"%(
+            function.__name__,str(args) ) )
+        resultfile.write("# time   time[Myr]  results  \n")
+        for i in range(ns):
+            print("Snapshot: %i/%i    "%(i,ns),end="\r")
+            sn = read_snapshot(folder,i,inputfilename="input")
+            t = sn.parameters["time"]
+            tscale = sn.parameters["tscale"]
+            resultfile.write( (fmt+"  "+fmt)%( t,t*tscale ) )
+            fout = function(sn,**kwargs)
+            #print(str(fout)+"\r")
+            nout = len(fout) if hasattr(fout,"__len__") else 1
+            if nout > 1:
+                for j in range(nout):
+                    resultfile.write( " "+fmt%(fout[j] ) )
+            else:
+                resultfile.write( " "+fmt%(fout) )
+            resultfile.write("\n")
+        print("\n")
+        resultfile.close()
 
 def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     """ 
@@ -177,4 +184,3 @@ def bound_statistics(snapshot):
     rh = boundset.half_mass_radius()
     vdisp  =  boundset.velocity_dispersion()
     return fbound,rh,vdisp
-

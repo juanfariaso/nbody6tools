@@ -4,64 +4,103 @@ from optparse import OptionParser
 from argparse import ArgumentParser
 from inspect import getmembers, isfunction
 
-from nbody6tools import Plots,Analyse
+from nbody6tools import Plots, Analyse
+
 
 def executable_options():
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(help='Available Commands')
 
-    parser.add_argument("folder",metavar="FOLDER",help="simulation folder", default="./",nargs="?") 
+    #parser.add_argument("folder", metavar="FOLDER",
+    #                    help="Simulation folder(s)", default="./", nargs="?")
 
-    #animate
-    parse_animate = subparsers.add_parser("animate",help="shows animation of simulation, may be slow in big clusters.")
-    parse_animate.set_defaults(fun = Plots.make_animation )
-    parse_animate.add_argument("--boxsize",default = None, type = float,
-            help="Size of the box in parsecs. Default: 10 initial half mass radius")
-    parse_animate.add_argument("--fps",help = "frames per second if an output file is given",default=10)
-    parse_animate.add_argument("--xy",help="Projection of animation. Default 'xy'",default = "xy",
-            choices=["xy","yx","xz","zx","yz","zy"])
-    parse_animate.add_argument("--dpi",help="dpi for animated output. Default 'None'",default = None)
-    parse_animate.add_argument("--show_bound",help="Show bound star in red. Dfault False",default = False,action="store_true")
-    parse_animate.add_argument("-o","--output",help="output file. Defaults shows animation without saving. ", default=None) 
+    # animate
+    parse_animate = subparsers.add_parser("animate",
+                                          help="shows animation of simulation,"
+                                          "may be slow in big clusters.")
+    parse_animate.set_defaults(fun=Plots.make_animation)
+    parse_animate.add_argument("--boxsize", default=None, type=float,
+                               help="Size of the box in parsecs. "
+                               "Default: 10 initial half mass radius")
+    parse_animate.add_argument("--fps", default=10,
+                               help="frames per second if an output"
+                               " file is given")
+    parse_animate.add_argument("--xy", default="xy",
+                               choices=["xy", "yx", "xz", "zx", "yz", "zy"],
+                               help="Projection of animation. Default 'xy'")
+    parse_animate.add_argument("--dpi", default=None,
+                               help="dpi for animated output. Default 'None'")
+    parse_animate.add_argument("--show_bound",  default=False,
+                               action="store_true",
+                               help="Show bound star in red. Default False")
+    parse_animate.add_argument("-o", "--output", default=None,
+                               help="output file."
+                               "Defaults shows animation without saving. ")
+    parse_animate.add_argument("folder", metavar="FOLDER",
+                               help="Simulation folder", default="./",
+                               nargs="?")
 
-    #evol
-    parse_evol = subparsers.add_parser("evol",help="shows the evolution of a parameter")
-    parse_evol.set_defaults(fun = Plots.evol )
-    parse_evol.add_argument("-p","--parameter",help="paramter to show. Default fbin.",default = "fbin",
-            choices=["fbin","lagr"])
-    parse_evol.add_argument("-o","--output",help="output file (png,pdf,jpg). Default shows evolution. ", default=None) 
-    
-    #plot
-    parse_evol = subparsers.add_parser("plot",help="plot position[velocity] of stars")
-    parse_evol.set_defaults(fun = Plots.plot )
-    parse_evol.add_argument("-s","--space",help="space to plot. Default position.",default = "position",
-            choices=["position","velocity"])
-    parse_evol.add_argument("--snapshot",help="Snapshot number to plot. Default 1",default=1)
+    # evol
+    parse_evol = subparsers.add_parser("evol",
+                                       help="shows the evolution of a parameter")
+    parse_evol.set_defaults(fun=Plots.evol)
+    parse_evol.add_argument("-p", "--parameter",
+                            default="fbin", choices=["fbin", "lagr"], 
+                            help="paramter to show. Default fbin."
+                            )
+    parse_evol.add_argument("-o", "--output", default=None,
+                            help="output file (png,pdf,jpg). "
+                            "Default shows evolution. ")
+    parse_evol.add_argument("folder", metavar="FOLDER",
+                            help="Simulation folder", default="./", nargs="?")
 
-    #compute
-    parse_compute = subparsers.add_parser("compute",help="Calculate a parameter over time and write result in output.") 
-    parse_compute.set_defaults(fun = Analyse.compute)
-    available_functions = [ o[0] for o in getmembers(Analyse) if (isfunction(o[1]) and o[1].__module__ == "nbody6tools.Analyse") ]
+    # plot
+    parse_plot = subparsers.add_parser("plot",
+                                       help="plot position[velocity] of stars")
+    parse_plot.set_defaults(fun=Plots.plot)
+    parse_plot.add_argument("-s", "--space", default="position",
+                            choices=["position", "velocity"],
+                            help="space to plot. Default position.")
+    parse_plot.add_argument("--snapshot", default=1,
+                            help="Snapshot number to plot. Default 1")
+
+    # compute
+    parse_compute = subparsers.add_parser("compute",
+                                          help="Calculate a parameter over"
+                                          " time and write result in output." 
+                                          "If more than one FOLDER is provided,"
+                                          "it places output on each FOLDER")
+    parse_compute.set_defaults(fun=Analyse.compute)
+    available_functions = [o[0] for o in getmembers(Analyse)
+                           if (isfunction(o[1]) and
+                               o[1].__module__ == "nbody6tools.Analyse")]
     available_functions.remove("compute")
-    parse_compute.add_argument("function",
-            help="function to evaluate (Defined in Analyse module)",default = None,
-            choices=available_functions)
-    parse_compute.add_argument("-a","--arguments",dest="args",metavar="arg=value",type=str,nargs="+",
-            help = "extra arguments to be passed to function. value can only be numbers for now.")
-    parse_compute.add_argument("--doc",action="store_true",
-            help="show documentation of function")
-    parse_compute.add_argument("--overwrite",action="store_true",
-            help="if specified, overwrite output. Else raise error if file exists.")
-    parse_evol.add_argument("-o","--output",help="output file. Default use name of the function used, and uses current folder. ", default=None) 
-
+    parse_compute.add_argument("function", default=None,
+                               choices=available_functions,
+                               help="function to evaluate"
+                               " (Defined in Analyse module)")
+    parse_compute.add_argument("-a", "--arguments", dest="args",
+                               metavar="arg=value", type=str, nargs="+",
+                               help="extra arguments to be passed to function."
+                               " value can only be numbers for now.")
+    parse_compute.add_argument("--doc", action="store_true",
+                               help="show documentation of function")
+    parse_compute.add_argument("--overwrite", action="store_true",
+                               help="if specified, overwrite output."
+                               " Else raise error if file exists.")
+    parse_compute.add_argument("-o", "--output", default=None,
+                               help="output file. Default use name of "
+                               "the function used. If more than one folder is "
+                               "provided, output will be placed on each "
+                               "folder, otherwise output is placed in the " 
+                               "current working directory. ")
+    parse_compute.add_argument("folders", metavar="FOLDER",
+                               help="simulation folder", default=["./"], 
+                               nargs="*")
     return parser
-   
-def execute_actions(args) :
-    print(args)
-    args.fun(**vars(args))
+
 
 if __name__ == '__main__':
-    parser = executable_options()
-    args = parser.parse_args()
-
-    execute_actions(args)
+    optParser = executable_options()
+    args = optParser.parse_args()
+    args.fun(**vars(args))
