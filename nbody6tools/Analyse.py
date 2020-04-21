@@ -56,14 +56,21 @@ def compute(folders,function,args=None,output=None,overwrite=False,fmt = "%10.7g
             outputfile = "%s/%s"%(folder,outputfile)
 
         mode = "w" if overwrite else "x"
-        resultfile =  open(outputfile,mode,1)   #fail if already exists for safety
+        try:
+            resultfile =  open(outputfile,mode,1)   #fail if already exists for safety
+        except FileExistsError:
+            print("File %s exists, skipping. Try --overwrite option"%outputfile)
+            continue
 
         resultfile.write("# function %s with extra arguments: %s \n"%(
             function.__name__,str(args) ) )
         resultfile.write("# time   time[Myr]  results  \n")
         for i in range(ns):
             print("Snapshot: %i/%i    "%(i,ns),end="\r")
-            sn = read_snapshot(folder,i,inputfilename="input")
+            try:
+                sn = read_snapshot(folder,i,inputfilename="input")
+            except:
+                break
             t = sn.parameters["time"]
             tscale = sn.parameters["tscale"]
             resultfile.write( (fmt+"  "+fmt)%( t,t*tscale ) )
