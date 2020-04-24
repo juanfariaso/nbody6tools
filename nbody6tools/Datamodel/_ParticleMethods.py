@@ -3,17 +3,17 @@ from nbody6tools import Utilities
 from nbody6tools.snowballing import snowballing_method
 
 
-class Methods():
+class Methods(object):
     """
     This class does not work by its own. It defines the methods for the Particle class
     defined in Datamodel.__init__.py
     """
 
     def half_mass_radius(self,direction="average"):
-        return Utilities.get_mass_radius(direction=direction,fraction=0.5)
+        return Utilities.get_mass_radius(self,direction=direction,fraction=0.5)
 
     def mass_radius(self,direction="average",fraction=0.5):
-        return Utilities.get_mass_radius(fraction=fraction,direction=direction)
+        return Utilities.get_mass_radius(self,fraction=fraction,direction=direction)
 
     def bound_indexes(self,verbose = False):
         """ 
