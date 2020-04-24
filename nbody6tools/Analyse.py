@@ -34,6 +34,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
     scriptmode = False
     if stdout is not None:
         sys.stdout = open(stdout,"a")
+        sys.stderr = open(stdout+"err","a")
         scriptmode=True
 
     kwargs = dict()
@@ -53,7 +54,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
 
     for folder in folders:
         #parse the extra arguments if any
-        if len(folders) > 1:
+        if len(folders) > 1 and not scriptmode:
             print("Working on folder %s"%folder)
 
         ns = get_number_of_snapshots(folder)
@@ -66,6 +67,8 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             resultfile =  open(outputfile,mode,1)   #fail if already exists for safety
         except FileExistsError:
             print("File %s exists, skipping. Try --overwrite option"%outputfile)
+            sys.stdout.flush()
+            sys.stderr.flush()
             continue
 
         resultfile.write("# function %s with extra arguments: %s \n"%(
@@ -94,6 +97,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             print("\n")
         else:
             print("%s Done"%outputfile)
+            sys.stdout.flush()
             sys.stderr.flush()
         resultfile.close()
 
