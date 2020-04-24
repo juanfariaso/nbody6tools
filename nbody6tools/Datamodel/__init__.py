@@ -1,13 +1,14 @@
 import subprocess
-import numpy
-from scipy.io import FortranFile
+import warnings
 import os
 import glob
-import warnings
+
+from scipy.io import FortranFile
+import numpy
 
 from ._ParticleMethods  import Methods
 
-def parse_inputfile(inputfilename,**kw):
+def parse_inputfile(inputfilename):
     """
     parse Nbody6 inputfile 'inputfilename' into a dictionary.
     Include options in the customized Nbody6GF version.
@@ -25,7 +26,9 @@ def parse_inputfile(inputfilename,**kw):
         for val in values :
             resdict["KZ"].append(int(val))
 
-    result = dict(KZ=[ None ]) # Initial none is added so e.g. KZ[1] is actually KZ(1) and not KZ(2) as it would be in the python syntax
+    result = dict(KZ=[ None ]) 
+    # Initial none is added so e.g. KZ[1] is actually KZ(1) and not KZ(2) as it
+    # would be in the python syntax
     inputfile = open(inputfilename,"r")
 
     parseline(inputfile.readline(),result,
@@ -490,13 +493,13 @@ class Snapshot(object):
 
         return Particles(result_dict)
 
-class Particles(Methods,object):
+class Particles(Methods):
     """
     Object to store and manipulate set of particles.
     This object is not supposed to be used by itself, but
     wrapped by the Snapshot object.
     """
-    def __init__(self,stars_dict,center=[0,0,0]):
+    def __init__(self,stars_dict,center=[0.,0.,0.]):
         self.__n = len(stars_dict["name"])  if hasattr(stars_dict["name"],"__len__" ) else 1  #must be first parameter to be setted
         self.__data = stars_dict
         l=[]
@@ -508,6 +511,7 @@ class Particles(Methods,object):
         self.__sanity_check()
         self.__index = 0
         self.__center = numpy.array(center)
+        self.__center_velocity = numpy.array([0.,0.,0.])
 
     @property
     def center(self):
@@ -523,6 +527,15 @@ class Particles(Methods,object):
         self.z -= center[2]
         self.__center -= center
 
+    def to_center_velocity(self,center_velocity=None):
+        if center_velocity is None:
+            center_velocity = self.center_velocity
+        else:
+            center_velocity = numpy.array(center_velocity)
+        self.vx -= center_velocity[0]
+        self.vy -= center_velocity[1]
+        self.vz -= center_velocity[2]
+        self.__center_velocity -= center_velocity
 
     def set_center(self,center):
         print("setting center",center)

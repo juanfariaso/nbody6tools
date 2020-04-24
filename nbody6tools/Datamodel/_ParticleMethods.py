@@ -1,6 +1,6 @@
-from nbody6tools.snowballing import snowballing_method
-from nbody6tools import Utilities
 import numpy
+from nbody6tools import Utilities
+from nbody6tools.snowballing import snowballing_method
 
 
 class Methods():
@@ -10,11 +10,10 @@ class Methods():
     """
 
     def half_mass_radius(self,direction="average"):
-        return self.mass_radius(self,fraction=0.5,direction=direction)
+        return Utilities.get_mass_radius(direction=direction,fraction=0.5)
 
     def mass_radius(self,direction="average",fraction=0.5):
-        return Utilities.get_mass_radius(self, fraction=fraction,
-                                         direction=direction)
+        return Utilities.get_mass_radius(fraction=fraction,direction=direction)
 
     def bound_indexes(self,verbose = False):
         """ 
