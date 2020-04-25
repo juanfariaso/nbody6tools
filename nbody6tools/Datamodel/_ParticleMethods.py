@@ -3,17 +3,19 @@ from nbody6tools import Utilities
 from nbody6tools.snowballing import snowballing_method
 
 
-class Methods(object):
+class Methods():
     """
-    This class does not work by its own. It defines the methods for the Particle class
-    defined in Datamodel.__init__.py
+    This class does not work by its own. It defines the methods for the
+    Particle class defined in Datamodel.__init__.py self is the Particle
+    Object.
     """
 
     def half_mass_radius(self,direction="average"):
         return Utilities.get_mass_radius(self,direction=direction,fraction=0.5)
 
     def mass_radius(self,direction="average",fraction=0.5):
-        return Utilities.get_mass_radius(self,fraction=fraction,direction=direction)
+        return Utilities.get_mass_radius(self,fraction=fraction,
+                                         direction=direction)
 
     def bound_indexes(self,verbose = False):
         """ 
@@ -21,9 +23,12 @@ class Methods(object):
         stars are in physical units
         """
         #epot = self.x*0.0 # background potential #TODO implement
-        parts=numpy.array([self.x,self.y,self.z,self.vx,self.vy,self.vz,self.mass,self.epot],dtype=numpy.float64) #must be float64
-        rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64 )
-        clumps =  numpy.array(self.center,dtype=numpy.float64)  #should be use center of density. Maybe initialize this value at start
+        parts=numpy.array([self.x,self.y,self.z,self.vx,self.vy,self.vz,
+                           self.mass,self.epot],dtype=numpy.float64) 
+                           #must be float64
+        rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64)
+        #should be use center of density. Maybe initialize this value at start
+        clumps =  numpy.array(self.center,dtype=numpy.float64)  
         cl_flags=snowballing_method(parts,clumps,rcores,verbose) 
         return numpy.array(cl_flags[0],  dtype=bool )
 
@@ -32,7 +37,10 @@ class Methods(object):
         return self[self.bound_indexes(verbose)]
 
     def velocity_dispersion(self,direction="average"):
-        """ return one dimensional velocity dispersion (average of the three projections)"""
+        """ 
+        return one dimensional velocity dispersion (average of the three
+        projections)
+        """
         return Utilities.get_velocity_dispersion(self,direction)
 
     def potential_energy(self, G = 4.3020077853E-3,smoothing_length=0.01):
@@ -58,7 +66,8 @@ class Methods(object):
             dx = x - x_vector[i+1:]
             dy = y - y_vector[i+1:]
             dz = z - z_vector[i+1:]
-            dr = numpy.sqrt( (dx * dx) + (dy * dy) + (dz * dz) + smoothing_length*smoothing_length)
+            dr = numpy.sqrt((dx * dx) + (dy * dy) + (dz * dz)
+                            + smoothing_length*smoothing_length)
             m_m = mass[i] * mass[i+1:]
 
             energy_of_this_particle = (m_m / dr).sum() + epot[i]*mass[i]
@@ -70,7 +79,11 @@ class Methods(object):
         return ke.sum()
 
     def virial_ratio(self,G = 4.3020077853E-3,smoothing_length=0.01):
-        return -self.kinetic_energy()/self.potential_energy(G=G,smoothing_length=smoothing_length) 
+        return (-self.kinetic_energy()
+                 /self.potential_energy(G=G,smoothing_length=smoothing_length) )
+        #Below only uses Nbody6 quantities. It should be standard.
+        # testing
+        #return (-self.kinetic_energy()/ numpy.nansum( self.epot*self.mass  ) )
 
     def center_of_mass(self):
         mtot = self.mass.sum()
@@ -87,4 +100,3 @@ class Methods(object):
         return vx,vy,vz
 
         
-
