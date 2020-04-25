@@ -317,6 +317,7 @@ class Snapshot(object):
         stars_dict["vx"] = X[0,:]
         stars_dict["vy"] = X[1,:]
         stars_dict["vz"] = X[2,:]
+        stars_dict["pot"] = record[6]
         stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:])
 
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
@@ -365,6 +366,7 @@ class Snapshot(object):
             self.__allstars.vz   *= self.parameters["vstar"]
             G = 4.3020077853E-3
             escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
+            self.__allstars.pot*=escale
             self.__allstars.epot*=escale
             self.__allstars.center *= self.parameters["rbar"]
             self._time *= self.parameters["tscale"]
@@ -477,13 +479,22 @@ class Snapshot(object):
         bdict = dict()
         bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
         bdict["mass"] = prim_stars.mass + sec_stars.mass
-        bdict["x"]    = (prim_stars.mass*prim_stars.x + sec_stars.mass*sec_stars.x) /bdict["mass"]
-        bdict["y"]    = (prim_stars.mass*prim_stars.y + sec_stars.mass*sec_stars.y) /bdict["mass"]
-        bdict["z"]    = (prim_stars.mass*prim_stars.z + sec_stars.mass*sec_stars.z) /bdict["mass"]
-        bdict["vx"]   = (prim_stars.mass*prim_stars.vx + sec_stars.mass*sec_stars.vx) /bdict["mass"]
-        bdict["vy"]   = (prim_stars.mass*prim_stars.vy + sec_stars.mass*sec_stars.vy) /bdict["mass"]
-        bdict["vz"]   = (prim_stars.mass*prim_stars.vz + sec_stars.mass*sec_stars.vz) /bdict["mass"]
-        bdict["epot"] = self.external_potential_at_point(bdict["x"],bdict["y"],bdict["z"]) 
+        bdict["x"] = (prim_stars.mass*prim_stars.x 
+                      + sec_stars.mass*sec_stars.x) / bdict["mass"]
+        bdict["y"] = (prim_stars.mass*prim_stars.y 
+                      + sec_stars.mass*sec_stars.y) / bdict["mass"]
+        bdict["z"] = (prim_stars.mass*prim_stars.z 
+                      + sec_stars.mass*sec_stars.z) / bdict["mass"]
+        bdict["vx"] = (prim_stars.mass*prim_stars.vx 
+                       + sec_stars.mass*sec_stars.vx) / bdict["mass"]
+        bdict["vy"] = (prim_stars.mass*prim_stars.vy
+                       + sec_stars.mass*sec_stars.vy) / bdict["mass"]
+        bdict["vz"] = (prim_stars.mass*prim_stars.vz 
+                       + sec_stars.mass*sec_stars.vz) / bdict["mass"]
+        bdict["pot"] = (prim_stars.mass*prim_stars.pot
+                        + sec_stars.mass*sec_stars.pot) / bdict["mass"]
+        bdict["epot"] = self.external_potential_at_point(bdict["x"],bdict["y"],
+                                                         bdict["z"])
 
         result_dict = dict()
         for key in singles.available_attributes():

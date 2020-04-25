@@ -59,8 +59,8 @@ def compute(folders,function,args=None,output=None,overwrite=False,
 
         ns = get_number_of_snapshots(folder)
         if output is None:
-            outputfile =  function.__name__+".dat"
-        outputfile = "%s/%s"%(folder,outputfile)
+            output =  function.__name__+".dat"
+        outputfile = "%s/%s"%(folder,output)
 
         mode = "w" if overwrite else "x"
         try:
@@ -158,7 +158,7 @@ def bound_fraction(snapshot,**args):
     rh = bound_set.half_mass_radius()
     return bound_set.mass.sum() / stars.mass.sum(), sigma, rh
 
-def virial_ratio(snapshot,bound = True,smoothing_length=0.01):
+def virial_ratio(snapshot,bound = True):
     """ Calculate the virial ratio of snapshot:
 
     bound : if True only consider bound stars
@@ -166,7 +166,8 @@ def virial_ratio(snapshot,bound = True,smoothing_length=0.01):
     """
     snapshot.to_physical()
     snapshot.to_center()
-    stars = snapshot.unresolve_all()
+    #stars = snapshot.unresolve_all()
+    stars = snapshot.stars
     if bound:
         stars = stars.bound_subset()
 
@@ -174,7 +175,7 @@ def virial_ratio(snapshot,bound = True,smoothing_length=0.01):
     stars.vx -= cmv[0]
     stars.vy -= cmv[1]
     stars.vz -= cmv[2]
-    return stars.virial_ratio(smoothing_length=smoothing_length)
+    return stars.virial_ratio()
 
 def binary_fraction(snapshot):
     widefile = snapshot._snapshotfile.replace("conf.3_","bwdat.19_")  

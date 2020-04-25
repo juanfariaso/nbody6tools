@@ -43,47 +43,29 @@ class Methods():
         """
         return Utilities.get_velocity_dispersion(self,direction)
 
-    def potential_energy(self, G = 4.3020077853E-3,smoothing_length=0.01):
+    def potential_energy(self):
         """
-        Returns the total potential energy of the self in the self set.
+        Returns the total potential energy of the particles.
+        Uses internal PHI calculated by Nbody6
         """
+        return (self.pot*self.mass).sum()/2.
 
-        if len(self) < 2:
-            return 0
-
-        mass = self.mass
-        x_vector = self.x
-        y_vector = self.y
-        z_vector = self.z
-        epot = self.epot
-
-        sum_of_energies = 0.0
-
-        for i in range(len(self) - 1):
-            x = x_vector[i]
-            y = y_vector[i]
-            z = z_vector[i]
-            dx = x - x_vector[i+1:]
-            dy = y - y_vector[i+1:]
-            dz = z - z_vector[i+1:]
-            dr = numpy.sqrt((dx * dx) + (dy * dy) + (dz * dz)
-                            + smoothing_length*smoothing_length)
-            m_m = mass[i] * mass[i+1:]
-
-            energy_of_this_particle = (m_m / dr).sum() + epot[i]*mass[i]
-            sum_of_energies -= energy_of_this_particle
-        return G * sum_of_energies
 
     def kinetic_energy(self):
+        """
+        Returns kinetic energy of particles
+        """
         ke = 0.5*self.mass*(self.vx**2 + self.vy**2 +self.vz**2 )
         return ke.sum()
 
     def virial_ratio(self,G = 4.3020077853E-3,smoothing_length=0.01):
-        return (-self.kinetic_energy()
-                 /self.potential_energy(G=G,smoothing_length=smoothing_length) )
-        #Below only uses Nbody6 quantities. It should be standard.
-        # testing
-        #return (-self.kinetic_energy()/ numpy.nansum( self.epot*self.mass  ) )
+        """
+        Returns virial ratio. It follows routine scale.F in Nbody6
+        TODO: Implement other external potentials, e.g. Plummer
+        """
+        epot = (self.epot*self.mass).sum()
+        vir = self.potential_energy() - 2*epot
+        return -self.kinetic_energy()/vir
 
     def center_of_mass(self):
         mtot = self.mass.sum()
