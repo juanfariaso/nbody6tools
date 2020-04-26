@@ -370,7 +370,7 @@ class Snapshot(object):
             self.__allstars.pot*=escale
             self.__allstars.epot*=escale
             self.__allstars.center *= self.parameters["rbar"]
-            self.__allstars.physical = True
+            self.__allstars.gravitational_constant = G
             self._time *= self.parameters["tscale"]
             self.parameters["rdens"]*= self.parameters["rbar"]
             self._physical = True
@@ -389,7 +389,7 @@ class Snapshot(object):
             escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
             self.__allstars.epot /= escale
             self.__allstars.pot /=escale
-            self.__allstars.physical = 1
+            self.__allstars.gravitational_constant = 1
             self._time /= self.parameters["tscale"]
             self.parameters["rdens"] /= self.parameters["rbar"]
             self._physical = False
