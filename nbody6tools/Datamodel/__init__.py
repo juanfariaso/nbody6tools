@@ -162,7 +162,8 @@ class Snapshot(object):
         """ Dict. containing stellar coordinates:
         mass, x,y,z, vx,vy,vz,epot
         """
-        return self.__allstars[ (self.__allstars.name <= self.n)*(self.__allstars.name > 0)  ]
+        return self.__allstars[ (self.__allstars.name <= self.n)
+                               *(self.__allstars.name > 0)  ]
 
     @property
     def unresolved_stars(self):
@@ -369,6 +370,7 @@ class Snapshot(object):
             self.__allstars.pot*=escale
             self.__allstars.epot*=escale
             self.__allstars.center *= self.parameters["rbar"]
+            self.__allstars.physical = True
             self._time *= self.parameters["tscale"]
             self.parameters["rdens"]*= self.parameters["rbar"]
             self._physical = True
@@ -386,6 +388,8 @@ class Snapshot(object):
             G = 4.3020077853E-3
             escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
             self.__allstars.epot /= escale
+            self.__allstars.pot /=escale
+            self.__allstars.physical = 1
             self._time /= self.parameters["tscale"]
             self.parameters["rdens"] /= self.parameters["rbar"]
             self._physical = False
@@ -502,7 +506,8 @@ class Snapshot(object):
             bval = bdict[key]
             result_dict[key] = numpy.concatenate( [sval,bval] )
 
-        return Particles(result_dict)
+        return Particles(result_dict,
+                         gravitational_constant=self.stars.gravitational_constant)
 
 class Particles(Methods):
     """
@@ -510,9 +515,11 @@ class Particles(Methods):
     This object is not supposed to be used by itself, but
     wrapped by the Snapshot object.
     """
-    def __init__(self,stars_dict,center=[0.,0.,0.]):
+    def __init__(self,stars_dict,center=[0.,0.,0.],
+                 gravitational_constant = 1):
         self.__n = len(stars_dict["name"])  if hasattr(stars_dict["name"],"__len__" ) else 1  #must be first parameter to be setted
         self.__data = stars_dict
+        self.gravitational_constant = gravitational_constant
         l=[]
         for key in stars_dict:
             if not hasattr(stars_dict[key],"__len__"):
@@ -574,7 +581,7 @@ class Particles(Methods):
         d = dict()
         for k in self.__data:
             d[k] = self.__data[k][i]
-        return Particle(d)
+        return Particle(d,gravitational_constant=self.gravitational_constant)
 
     def __getitem__(self,index) :
         if type(index) == str :
@@ -583,7 +590,10 @@ class Particles(Methods):
             d = dict()
             for k in self.__data:
                 d[k] = self.__data[k][index]
-            return Particles(d,center=self.center)
+            return Particles(
+                d,center=self.center,
+                gravitational_constant=self.gravitational_constant
+                )
 
     def __setitem__(self,index,value):
         vlen = 1 if not hasattr(value,"__len__") else len(value)
@@ -617,10 +627,11 @@ class Particles(Methods):
         return list(self.__data.keys() )
 
 class Particle(object):
-    def __init__(self,star_dict):
+    def __init__(self,star_dict,gravitational_constant=1):
         for key in star_dict:
             setattr(self,key,star_dict[key])
         self.__data = star_dict
+        self.gravitational_constant
     def __str__(self):
         return "Particle Object: %s "% str(self.__data)
     def __repr__(self):

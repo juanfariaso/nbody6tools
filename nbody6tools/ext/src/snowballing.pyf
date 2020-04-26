@@ -3,13 +3,14 @@
 
 python module snowballing ! in 
     interface  ! in :snowballing
-        subroutine snowballing_method(nstars,ncl,stars,clusters,rcores,screen,clstars) ! in :snowballing:Snowballing.f
+        subroutine snowballing_method(nstars,ncl,stars,clusters,rcores,screen,clstars,g) ! in :snowballing:Snowballing.f
             integer, optional,intent(in),check(shape(stars,1)==nstars),depend(stars) :: nstars=shape(stars,1)
             integer, optional,intent(in),check(shape(clusters,1)==ncl),depend(clusters) :: ncl=shape(clusters,1)
             real*8 dimension(8,nstars),intent(in) :: stars
             real*8 dimension(3,ncl),intent(in) :: clusters
             real*8 dimension(ncl),intent(in),depend(ncl) :: rcores
             logical intent(in) :: screen
+            real*8 intent(in) :: g
             integer dimension(ncl,nstars),intent(out),depend(ncl,nstars) :: clstars
         end subroutine snowballing_method
     end interface 

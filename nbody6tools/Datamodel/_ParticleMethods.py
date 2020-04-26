@@ -29,10 +29,11 @@ class Methods():
         rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64)
         #should be use center of density. Maybe initialize this value at start
         clumps =  numpy.array(self.center,dtype=numpy.float64)  
-        cl_flags=snowballing_method(parts,clumps,rcores,verbose) 
+        cl_flags=snowballing_method(parts,clumps,rcores,verbose,
+                self.gravitational_constant) 
         return numpy.array(cl_flags[0],  dtype=bool )
 
-    def bound_subset(self,verbose = False):
+    def bound_subset(self,verbose = False,gravitational_constant=1):
         """ Returns a bound subset of particles using the snowballing method"""
         return self[self.bound_indexes(verbose)]
 
