@@ -49,8 +49,7 @@ class Methods():
         Returns the total potential energy of the particles.
         Uses internal PHI calculated by Nbody6
         """
-        return (self.pot*self.mass).sum()/2.
-
+        return (self.pot*self.mass).sum()/2. + (self.epot*self.mass).sum()
 
     def kinetic_energy(self):
         """
@@ -81,5 +80,10 @@ class Methods():
         vy = (self.mass*self.vy).sum()/mtot
         vz = (self.mass*self.vz).sum()/mtot
         return vx,vy,vz
+
+
+
+
+
 
         

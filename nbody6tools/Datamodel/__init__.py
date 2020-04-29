@@ -150,7 +150,6 @@ class Snapshot(object):
         self._physical = False
         self.__read_snapshot()
 
-
     @property
     def parameters(self):
         """ Dict. containing parameters read from the AS variable.
@@ -221,6 +220,43 @@ class Snapshot(object):
                   False: Snapshot in different files. Provide a file to advance.
         """
         return self._singlefile
+
+    def virial_energy_of_set(self,particles):
+        """
+        Compute the virial energy VIR = SUM F·r. 
+        Not all options are implemented here. Please update to your needs.
+        If no background potential is used, VIR := POT for an Nbody system,
+        however this is not true for other options.
+
+        It relies on the potential calculated by nbody6 and the external
+        potential from the function Snapshot.external_potential_at_point() that
+        should be well defined for each case.
+
+        Currently only power law potential is implemented (from my customized
+        version of Nbody6). 
+        TODO: Update and add other backgrounds
+        """
+        result = (particles.pot*particles.mass).sum()*0.5
+        if self.inputfile["KZ"][14] == 5 :
+            krho = self.inputfile["KRHO"] 
+            Rcl = self.inputfile["AP"]
+            if particles.physical:
+                Rcl*=self.parameters["rbar"]
+            GMR = -self.external_potential_at_point([0],[0],[Rcl],
+                                                   physical=particles.physical
+                                                   )[0]
+            r = numpy.sqrt(particles.x**2 + particles.y**2 + particles.z**2)
+
+            mask = r<=Rcl 
+            K = (3.0-self.inputfile["KRHO"]) / (2.-self.inputfile["KRHO"])
+            result +=-(2.0-self.inputfile["KRHO"])*(
+                      (particles.epot[mask] +K*GMR )*particles.mass[mask]
+                      ).sum() 
+
+            mask = r>Rcl 
+            result += -(particles.epot*particles.mass).sum()
+
+        return result
 
     def step(self,n=1):
         """ 
@@ -326,20 +362,29 @@ class Snapshot(object):
         self.__stars = allparticles[mask_stars]
         self.__allstars = allparticles
 
-    def external_potential_at_point(self,x,y,z):
+    def external_potential_at_point(self,x,y,z,physical=None):
         """ Return background potential field at given point.
-        physical : if True x,y,z are on pc. default False (Nbody units) (deprecated)
+        physical : if True x,y,z are on pc. And result in km**2 * s**-1
+                   if False in nbody units
+                   if None : taken from the Parent snapshot class
+                   default: None
         
         returns:
           background potential at x,y,z
-          if physical is True : result in MSun * km**2 * s**-2
+          if physical is True : result in km**2 * s**-2
           else: result in Nbody units
         """
+        if physical is None:
+            physical = self.physical
+        x = numpy.array(x)
+        y = numpy.array(y)
+        z = numpy.array(z)
+
         G = 1.0
         if "MP" in self.inputfile.keys():
             Mgas = self.inputfile["MP"] - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
             Rcore = self.inputfile["AP"]
-            if self.physical : 
+            if physical : 
                 Mgas *= self.parameters["zmbar"]
                 Rcore *= self.parameters["rbar"]
                 G = 4.3020077853E-3
@@ -358,19 +403,7 @@ class Snapshot(object):
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
-            self.__allstars.mass *= self.parameters["zmbar"]
-            self.__allstars.x    *= self.parameters["rbar"]
-            self.__allstars.y    *= self.parameters["rbar"]
-            self.__allstars.z    *= self.parameters["rbar"]
-            self.__allstars.vx   *= self.parameters["vstar"]
-            self.__allstars.vy   *= self.parameters["vstar"]
-            self.__allstars.vz   *= self.parameters["vstar"]
-            G = 4.3020077853E-3
-            escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
-            self.__allstars.pot*=escale
-            self.__allstars.epot*=escale
-            self.__allstars.center *= self.parameters["rbar"]
-            self.__allstars.gravitational_constant = G
+            self.__allstars.to_physical(self.parameters)
             self._time *= self.parameters["tscale"]
             self.parameters["rdens"]*= self.parameters["rbar"]
             self._physical = True
@@ -378,18 +411,7 @@ class Snapshot(object):
     def to_nbody(self):
         "Make sure stars are in physical units. Transform if not."
         if self._physical :
-            self.__allstars.mass /= self.parameters["zmbar"]
-            self.__allstars.x    /= self.parameters["rscale"]
-            self.__allstars.y    /= self.parameters["rscale"]
-            self.__allstars.z    /= self.parameters["rscale"]
-            self.__allstars.vx   /= self.parameters["vstar"]
-            self.__allstars.vy   /= self.parameters["vstar"]
-            self.__allstars.vz   /= self.parameters["vstar"]
-            G = 4.3020077853E-3
-            escale = G*self.parameters["zmbar"]/self.parameters["rbar"]
-            self.__allstars.epot /= escale
-            self.__allstars.pot /=escale
-            self.__allstars.gravitational_constant = 1
+            self.__allstars.to_nbody(self.parameters)
             self._time /= self.parameters["tscale"]
             self.parameters["rdens"] /= self.parameters["rbar"]
             self._physical = False
@@ -507,7 +529,7 @@ class Snapshot(object):
             result_dict[key] = numpy.concatenate( [sval,bval] )
 
         return Particles(result_dict,
-                         gravitational_constant=self.stars.gravitational_constant)
+                         physical=self.physical)
 
 class Particles(Methods):
     """
@@ -516,10 +538,10 @@ class Particles(Methods):
     wrapped by the Snapshot object.
     """
     def __init__(self,stars_dict,center=[0.,0.,0.],
-                 gravitational_constant = 1):
+                 physical = False):
         self.__n = len(stars_dict["name"])  if hasattr(stars_dict["name"],"__len__" ) else 1  #must be first parameter to be setted
         self.__data = stars_dict
-        self.gravitational_constant = gravitational_constant
+        self.__physical = physical
         l=[]
         for key in stars_dict:
             if not hasattr(stars_dict[key],"__len__"):
@@ -534,6 +556,58 @@ class Particles(Methods):
     @property
     def center(self):
         return self.__center
+    @property
+    def physical(self):
+        return self.__physical
+
+    def to_physical(self,parameters):
+        """
+        Make sure stars are in physical units. Transform if not.
+        input:
+            parameters : dictionary with scaling parameters, 
+            zmbar for mass, rbar for length and vstar for velocities.
+            Normally taken from Snapshot object as:
+                sn = Reader.read_snapshot("./",0)
+                parameters = sn.parameters
+        """
+        if not self.physical:
+            self.mass *= parameters["zmbar"]
+            self.x    *= parameters["rbar"]
+            self.y    *= parameters["rbar"]
+            self.z    *= parameters["rbar"]
+            self.vx   *= parameters["vstar"]
+            self.vy   *= parameters["vstar"]
+            self.vz   *= parameters["vstar"]
+            G = 4.3020077853E-3
+            escale = G*parameters["zmbar"]/parameters["rbar"]
+            self.pot*=escale
+            self.epot*=escale
+            self.center *= parameters["rbar"]
+            self.__physical = True
+
+    def to_nbody(self,parameters):
+        """
+        Make sure stars are in physical units. Transform if not.
+        input:
+            parameters : dictionary with scaling parameters, 
+            zmbar for mass, rbar for length and vstar for velocities.
+            Normally taken from Snapshot object as:
+                sn = Reader.read_snapshot("./",0)
+                parameters = sn.parameters
+        """
+        if self.physical:
+            self.mass /= parameters["zmbar"]
+            self.x    /= parameters["rscale"]
+            self.y    /= parameters["rscale"]
+            self.z    /= parameters["rscale"]
+            self.vx   /= parameters["vstar"]
+            self.vy   /= parameters["vstar"]
+            self.vz   /= parameters["vstar"]
+            G = 4.3020077853E-3
+            escale = G*parameters["zmbar"]/parameters["rbar"]
+            self.epot /= escale
+            self.pot /=escale
+            self.__physical = False
 
     def to_center(self,center=None):
         if center is None:
@@ -581,7 +655,7 @@ class Particles(Methods):
         d = dict()
         for k in self.__data:
             d[k] = self.__data[k][i]
-        return Particle(d,gravitational_constant=self.gravitational_constant)
+        return Particle(d,physical=self.physical)
 
     def __getitem__(self,index) :
         if type(index) == str :
@@ -592,7 +666,7 @@ class Particles(Methods):
                 d[k] = self.__data[k][index]
             return Particles(
                 d,center=self.center,
-                gravitational_constant=self.gravitational_constant
+                physical=self.physical
                 )
 
     def __setitem__(self,index,value):
@@ -627,11 +701,14 @@ class Particles(Methods):
         return list(self.__data.keys() )
 
 class Particle(object):
-    def __init__(self,star_dict,gravitational_constant=1):
+    def __init__(self,star_dict,physical=1):
         for key in star_dict:
             setattr(self,key,star_dict[key])
         self.__data = star_dict
-        self.gravitational_constant
+        self.__physical
+    @property
+    def physical(self):
+        return self.__physical
     def __str__(self):
         return "Particle Object: %s "% str(self.__data)
     def __repr__(self):

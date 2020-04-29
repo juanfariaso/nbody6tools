@@ -45,7 +45,10 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
             return line,bline
     opt = parse_inputfile(folder+"input")
     nsnap = get_number_of_snapshots(folder)
-    sn0 = read_snapshot(folder,0) if Options.getboolean("CONFIG","singleFile") else None
+    if Options.has_section("CONFIG"):
+        sn0 = read_snapshot(folder,0) if Options.getboolean("CONFIG","singleFile") else None
+    else:
+        sn0 = None
     fig1 = pyplot.gcf()
     l = pyplot.scatter([],[],[],c="k",alpha=0.8)
     bl = pyplot.scatter([],[],[],c="r",alpha=0.8)
