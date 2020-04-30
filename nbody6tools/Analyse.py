@@ -164,22 +164,11 @@ def virial_ratio(snapshot,bound = True):
     bound : if True only consider bound stars
     smoothing_length : Softhening length for avoid potential get too high.
     """
-    #snapshot.to_physical()
-    snapshot.to_center()
-    #stars = snapshot.stars
-    stars = snapshot.unresolve_all()
-
-    cmv = stars.center_of_mass_velocity()
-    stars.to_center_velocity(cmv)
-
-    #if bound:
-    #    mask = stars.pot + stars.mass*numpy.sqrt(stars.vx**2 + stars.vy**2 +
-                                                 #stars.vz**2)*0.5 < 0
-        #stars = stars.bound_subset()
-    #    stars = stars[mask]
-    pot= (stars.pot*stars.mass).sum()*0.5 + (stars.epot*stars.mass).sum()
-    return -stars.kinetic_energy()/pot
-    #return stars.virial_ratio()
+    if bound :
+        stars = snapshot.bound_stars_unresolved
+    else:
+        stars = snapshot.unresolved_stars
+    return stars.kinetic_energy() / snapshot.virial_energy_of_set(stars)
 
 def binary_fraction(snapshot):
     widefile = snapshot._snapshotfile.replace("conf.3_","bwdat.19_")  
