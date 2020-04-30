@@ -283,11 +283,11 @@ class Snapshot(object):
             result+=numpy.nansum( (2.0-krho)*(
                     (particles.epot+K*GMR)*particles.mass
                     )[mask]
-                    )*0.5
+                    )
 
             mask = r>Rcl 
             result += -numpy.nansum( (particles.epot*particles.mass)[mask]
-                    )*0.5
+                    )
 
         return result
 
