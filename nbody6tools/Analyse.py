@@ -146,17 +146,10 @@ def bound_fraction(snapshot,**args):
       return:
       bound_fraction, sigma_bound ,rh_bound
     """
-    snapshot.to_physical()
-    snapshot.to_center()
-    #if snapshot.parameters["kz"][8]>0 :
-    stars = snapshot.unresolve_all()
-    #else:
-    #    stars = snapshot.stars
-    
-    bound_set = stars.bound_subset()
+    bound_set = snapshot.bound_stars_unresolved
     sigma = bound_set.velocity_dispersion()
     rh = bound_set.half_mass_radius()
-    return bound_set.mass.sum() / stars.mass.sum(), sigma, rh
+    return bound_set.mass.sum() / snapshot.stars.mass.sum(), sigma, rh
 
 def virial_ratio(snapshot,bound = True):
     """ Calculate the virial ratio of snapshot:
@@ -186,20 +179,13 @@ def binary_energy(snapshot):
 
     return ebin_hard,ebin_wide,ebin_hard+ebin_wide
 
-def velocity_dispersion(snapshot) :
+def velocity_dispersion(snapshot,bound=True) :
     snapshot.to_physical()
-    stars = snapshot.unresolve_all()
+    if bound:
+        stars = snapshot.bound_stars_unresolved
+    else:
+        stars = snapshot.unresolved_stars
     return stars.velocity_dispersion()
-
-def bound_statistics(snapshot):
-    snapshot.to_physical()
-    stars = snapshot.unresolve_all()
-    boundset = stars.bound_subset()
-
-    fbound = boundset.mass.sum()/stars.mass.sum()
-    rh = boundset.half_mass_radius()
-    vdisp  =  boundset.velocity_dispersion()
-    return fbound,rh,vdisp
 
 def number_density(snapshot,mass_fraction_radii = 0.5) :
     """
@@ -208,6 +194,7 @@ def number_density(snapshot,mass_fraction_radii = 0.5) :
     returns : number density at given radii in stars / pc**3
     """
     snapshot.to_physical()
-    stars = snapshot.unresolve_all()
+    stars = snapshot.bound_stars_unresolved #unresolved is faster
+    n = (stars.name <= snapshot.n) + 2*(stars.name > snapshot.n )
     r = stars.mass_radius(fraction=mass_fraction_radii) 
     return len(stars) * 3./4./numpy.pi/r**3 
