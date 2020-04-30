@@ -167,9 +167,25 @@ class Snapshot(object):
     @property
     def unresolved_stars(self):
         """
-        Returns Particles object with regularized binaries as single stars
+        Returns Particles object with regularized binaries as center of mass
+        particles.
         """
-        return self.__allstars[self.__allstars.name > 2*self.npairs]
+        #return self.__allstars[self.__allstars.name > 2*self.npairs]
+        return self.__allstars[(2*self.npairs+1):]
+
+    @property
+    def bound_stars(self):
+        """
+        Bound set of particles
+        """
+        return self.__bound_stars(True)
+
+    @property
+    def bound_stars_unresolved(self):
+        """
+        Bound set of stars, with unresolved hard binaries
+        """
+        return self.__bound_stars(False)
 
     @property
     def inputfile(self):
@@ -221,6 +237,21 @@ class Snapshot(object):
         """
         return self._singlefile
 
+    def __bound_stars(self,resolved=True):
+        """Return bound subset of stars.
+        arguments:
+            resolved : if true, all binaries are resolved. if False, center of
+            mass particles are returned. Default: True
+        """
+        stars = self.unresolved_stars
+        bmask = abs(stars.epot + stars.pot)*stars.mass \
+                >0.5*stars.mass*numpy.array(stars.vx**2+stars.vy**2+stars.vz**2) 
+        bound_unresolved = stars[bmask]
+        if not resolved:
+            return bound_unresolved
+        else:
+            return self.resolve_set(bound_unresolved)
+
     def virial_energy_of_set(self,particles):
         """
         Compute the virial energy VIR = SUM F·r. 
@@ -236,7 +267,7 @@ class Snapshot(object):
         version of Nbody6). 
         TODO: Update and add other backgrounds
         """
-        result = (particles.pot*particles.mass).sum()*0.5
+        result = -(particles.pot*particles.mass).sum()*0.5
         if self.inputfile["KZ"][14] == 5 :
             krho = self.inputfile["KRHO"] 
             Rcl = self.inputfile["AP"]
@@ -248,13 +279,15 @@ class Snapshot(object):
             r = numpy.sqrt(particles.x**2 + particles.y**2 + particles.z**2)
 
             mask = r<=Rcl 
-            K = (3.0-self.inputfile["KRHO"]) / (2.-self.inputfile["KRHO"])
-            result +=-(2.0-self.inputfile["KRHO"])*(
-                      (particles.epot[mask] +K*GMR )*particles.mass[mask]
-                      ).sum() 
+            K = (3.0-krho) / (2.-krho)
+            result+=numpy.nansum( (2.0-krho)*(
+                    (particles.epot+K*GMR)*particles.mass
+                    )[mask]
+                    )*0.5
 
             mask = r>Rcl 
-            result += -(particles.epot*particles.mass).sum()
+            result += -numpy.nansum( (particles.epot*particles.mass)[mask]
+                    )*0.5
 
         return result
 
@@ -399,6 +432,23 @@ class Snapshot(object):
             result = x*0.0
 
         return result
+
+    def resolve_set(self, unresolved_set ):
+        """ 
+        Resolve binaries from unresolved_set, based on names.
+        unresolved_set must be a set of stars taken from the same snapshot
+        object containing this function.
+        """
+        def where(a):
+            return numpy.where(a==self.stars.name)[0][0]
+        where = numpy.vectorize(where)
+        cm_name = (unresolved_set.name - self.n)[unresolved_set.name > self.n]
+        iprim = where(cm_name)
+        ising = where(unresolved_set[unresolved_set.name <= self.n].name)
+        iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
+                                   ising])
+        return self.stars[iall]
+
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."

@@ -22,6 +22,7 @@ class Methods():
         Return bound positions using the snowballing method. Only works if
         stars are in physical units
         """
+        G = 4.3020077853E-3 if self.physical else 1
         #epot = self.x*0.0 # background potential #TODO implement
         parts=numpy.array([self.x,self.y,self.z,self.vx,self.vy,self.vz,
                            self.mass,self.epot],dtype=numpy.float64) 
@@ -29,8 +30,7 @@ class Methods():
         rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64)
         #should be use center of density. Maybe initialize this value at start
         clumps =  numpy.array(self.center,dtype=numpy.float64)  
-        cl_flags=snowballing_method(parts,clumps,rcores,verbose,
-                self.gravitational_constant) 
+        cl_flags=snowballing_method(parts,clumps,rcores,verbose,G) 
         return numpy.array(cl_flags[0],  dtype=bool )
 
     def bound_subset(self,verbose = False,gravitational_constant=1):
@@ -55,8 +55,10 @@ class Methods():
         """
         Returns kinetic energy of particles
         """
-        ke = 0.5*self.mass*(self.vx**2 + self.vy**2 +self.vz**2 )
-        return ke.sum()
+        ke = 0.5*(self.mass*(self.vx**2 + self.vy**2 +self.vz**2 )).sum()
+        cmv = numpy.array(self.center_of_mass_velocity())
+        ke-= self.mass.sum() * (cmv**2).sum() * 0.5 
+        return ke
 
     def virial_ratio(self,G = 4.3020077853E-3,smoothing_length=0.01):
         """
@@ -81,9 +83,3 @@ class Methods():
         vz = (self.mass*self.vz).sum()/mtot
         return vx,vy,vz
 
-
-
-
-
-
-        
