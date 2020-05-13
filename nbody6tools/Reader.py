@@ -72,8 +72,14 @@ def read_binaries(folder,snapshot=0,inputfilename=inputFile):
     Returns two dictionaries with binary properties
     regularized binaries , wide binaries
     """
-    #TODO raise error when needed kz option is not set
-    times = get_times(folder,dtype=str)
+    #TODO raise error when needed kz option is not set and check how to deal
+    # with single snapshotFilecase
+    l=[x.replace("%s%s"%(folder,snapshotFile),"") 
+       for x in glob.glob(folder+"%s*"%snapshotFile) ]
+    l.sort(key=float)
+    times = numpy.array(l,dtype=str)
+
+    #times = get_times(folder,nbody=True)
     widefile = "%s/bwdat.19_%s"%(folder,times[snapshot])
     hardfile = "%s/bdat.9_%s"%(folder,times[snapshot] )
     

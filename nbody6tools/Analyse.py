@@ -9,7 +9,7 @@ import numpy
 local_variables = locals()
 
 def compute(folders,function,args=None,output=None,overwrite=False,
-            fmt ="%10.7g",doc=False,stdout=None,**kw):
+            fmt ="%10.7g",doc=False,stdout=None,badTol=10,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
@@ -23,6 +23,9 @@ def compute(folders,function,args=None,output=None,overwrite=False,
     output                 : output file with results. Default 'function_name'.dat is given.
     overwrite              : if False raise Error if output file exists. Otherwise overwrite. Default: True
     fmt                    : format for numbers in columns. Default: '%10.7g' 
+    badTol                 : Number snapshots that fails to evalueate function
+                             that are ignored. Above this calculation is
+                             aborted for this folder.
     """
 
     function = local_variables[function]
@@ -30,6 +33,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
     if doc:
         print(function.__doc__)
         return
+
 
     scriptmode = False
     if stdout is not None:
@@ -53,6 +57,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
                                  "comma separated floats")
 
     for folder in folders:
+        nbad = 0 
         #parse the extra arguments if any
         if len(folders) > 1 and not scriptmode:
             print("Working on folder %s"%folder)
@@ -84,7 +89,18 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             t = sn.parameters["time"]
             tscale = sn.parameters["tscale"]
             resultfile.write( (fmt+"  "+fmt)%( t,t*tscale ) )
-            fout = function(sn,**kwargs)
+            try:
+                fout = function(sn,**kwargs)
+            except:
+                nbad+=1
+                if nbad > badTol :
+                    print("Warning: Too many bad evaluations of function %s"%
+                          function.__name__)
+                    print(" skipping folder %s"%folder)
+                    break
+                else:
+                    resultfile.write("  nan \n")
+                    continue
             #print(str(fout)+"\r")
             nout = len(fout) if hasattr(fout,"__len__") else 1
             if nout > 1:
