@@ -64,9 +64,11 @@ def compute(folders,function,args=None,output=None,overwrite=False,
 
         ns = get_number_of_snapshots(folder)
         if output is None:
-            output =  function.__name__+".dat"
-        outputfile = "%s/%s"%(folder,output)
+            outputfile  =  folder +"/"+ function.__name__+".dat"
+        else:
+            outputfile = output
 
+        print(outputfile)
         mode = "w" if overwrite else "x"
         try:
             resultfile =  open(outputfile,mode,1)   #fail if already exists for safety
@@ -137,7 +139,7 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     result = qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
     return result[0],result[1],rmax
 
-def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
+def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,1.0],**args) :
     """
     Custom Lagrangian radii calculation.
     extra arguments:
@@ -145,9 +147,25 @@ def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0],**args) :
             default: 0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0
 
     """
+    snapshot.to_physical()
     result = []
     for fr in mfrac:
         result.append(Utilities.get_mass_radius(snapshot.stars,fraction=fr) )
+    return result
+
+def lradb(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,1.0],**args) :
+    """
+    Custom Lagrangian radii calculation for bound set.
+    extra arguments:
+    mfrac : list of lagrangian radii to calculate
+            default: 0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.8,0.9,1.0
+
+    """
+    snapshot.to_physical()
+    result = []
+    for fr in mfrac:
+        stars = snapshot.bound_stars_unresolved
+        result.append(Utilities.get_mass_radius(stars,fraction=fr) )
     return result
 
 def mr_track(snapshot,mass_fraction=0.5,**args):
@@ -214,3 +232,13 @@ def number_density(snapshot,mass_fraction_radii = 0.5) :
     n = (stars.name <= snapshot.n) + 2*(stars.name > snapshot.n )
     r = stars.mass_radius(fraction=mass_fraction_radii) 
     return len(stars) * 3./4./numpy.pi/r**3 
+
+def core_radius(snapshot):
+    rcore = snapshot.parameters["rc"] * snapshot.parameters["rbar"]
+    snapshot.to_physical()
+    stars = snapshot.unresolved_stars
+    #rcenter = stars.mass_radius(fraction=0.01)
+    r = numpy.sqrt(stars.x**2 + stars.y**2 + stars.z**2)
+    
+    nc = (r<=rcore).sum()
+    return  rcore , 3.*nc/4./numpy.pi/rcore**3

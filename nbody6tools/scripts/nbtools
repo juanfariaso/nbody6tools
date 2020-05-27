@@ -45,7 +45,8 @@ def executable_options():
                                        help="shows the evolution of a parameter")
     parse_evol.set_defaults(fun=Plots.evol)
     parse_evol.add_argument("-p", "--parameter",
-                            default="fbin", choices=["fbin", "lagr"], 
+                            default="fbin", choices=["fbin","lagr",
+                                                     "total_energy"], 
                             help="paramter to show. Default fbin."
                             )
     parse_evol.add_argument("-o", "--output", default=None,

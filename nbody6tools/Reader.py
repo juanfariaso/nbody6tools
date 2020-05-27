@@ -38,6 +38,12 @@ def parse_inputfile(inputfilename=inputFile,**kw):
 
 def get_number_of_snapshots(folder,inputfilename=inputFile,**kw):
     return len(get_times(folder,inputfilename))
+#def get_number_of_snapshots(folder,snapshotfile=snapshotFile,singlefile=singleFile):
+#    l=[x.replace("%s%s"%(folder,snapshotfile),"") for x in glob.glob(folder+"%s*"%snapshotFile ) ]
+#    l.sort(key=float)
+#    if len(l) == 0:
+#        raise ValueError("No snapshots in this folder.")
+#    return len(l)
 
 def get_times(folder,nbody=False,inputfilename=inputFile):
     glfile = get_globals(folder)

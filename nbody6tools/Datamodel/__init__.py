@@ -354,8 +354,8 @@ class Snapshot(object):
         self.__parameters["ntcr"] = record[0][9] # number of elapsed initial crossing times 
         self.__parameters["tscale"] = record[0][10]
         self.__parameters["vstar"] = record[0][11]
-        self.__parameters["rc"] = record[0][12]
-        self.__parameters["nc"] = record[0][13]
+        self.__parameters["rc"] = float(record[0][12])
+        self.__parameters["nc"] = int(record[0][13])
         self.__parameters["vc"] = record[0][14]
         self.__parameters["rhom"] = record[0][15]
         self.__parameters["cmax"] = record[0][16]

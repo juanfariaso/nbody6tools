@@ -1,10 +1,13 @@
 import numpy
 
-def get_mass_radius(stars,fraction=0.5,direction="average"):
+def get_mass_radius(starsraw,fraction=0.5,direction="average"):
     """ Calculate mass fraction radius (default: half mass) of stars  
         input : stars    : Dictionary containing mass and x,y,z
                 fraction : Mass fraction to calculate. 
     """
+    stars = starsraw
+    #cm = stars.center_of_mass()
+    stars.to_center()
 
     mcut = stars["mass"].sum()*fraction
     if direction == "average" :
