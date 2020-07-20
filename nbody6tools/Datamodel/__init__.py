@@ -456,7 +456,8 @@ class Snapshot(object):
         where = numpy.vectorize(where)
         cm_name = (unresolved_set.name - self.n)[unresolved_set.name > self.n]
         iprim = where(cm_name)
-        ising = where(unresolved_set[unresolved_set.name <= self.n].name)
+        ising = where(unresolved_set[ (unresolved_set.name <= self.n) &
+                                       (unresolved_set.name > 0) ].name)
         iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
                                    ising])
         return self.stars[iall]
