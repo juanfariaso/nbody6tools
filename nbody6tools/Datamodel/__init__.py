@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 import warnings
 import os
@@ -103,20 +104,28 @@ def get_binaries_from_files(hardfile,widefile):
     for d,dat in zip( [widebin,hardbin],[bwdat,bdat] ):
         if len(dat) > 0 :
             if dat.ndim == 1:
-                dat = numpy.array([ numpy.array(dat) ,]  ).T
+                dat = numpy.array([ numpy.array(dat,dtype=float) ,]  ).T
             d["primary"  ] = numpy.array(dat[0,:],dtype=int)
             d["secondary"] = numpy.array(dat[1,:],dtype=int)
-            d["ebin"]      = dat[4,:] #nbody units
-            d["ecc"]       = dat[5,:] 
-            d["period"]    = dat[6,:] #days
-            d["semi"]      = dat[7,:] #AU
+            d["m1"]      = dat[2,:] #Msun units
+            d["m2"]      = dat[3,:] #MSun units
+            d["ebin"]    = dat[4,:] #nbody units
+            d["ecc"]     = dat[5,:] 
+            d["period"]  = dat[6,:] #days
+            d["semi"]    = dat[7,:] #AU
+            d["kstar1"]  = dat[10,:]
+            d["kstar2"]  = dat[11,:]
         else:
             d["primary"  ] = numpy.array([])
             d["secondary"] = numpy.array([])
-            d["ebin"]      = numpy.array([])
-            d["ecc"]       = numpy.array([])
-            d["period"]    = numpy.array([])
-            d["semi"]      = numpy.array([])
+            d["m1"]      = numpy.array([])
+            d["m2"]      = numpy.array([])
+            d["ebin"]    = numpy.array([])
+            d["ecc"]     = numpy.array([])
+            d["period"]  = numpy.array([])
+            d["semi"]    = numpy.array([])
+            d["kstar1"]  = numpy.array([])
+            d["kstar2"]  = numpy.array([])
 
     return hardbin,widebin
 
@@ -149,6 +158,7 @@ class Snapshot(object):
         self.__parameters = dict()
         self._physical = False
         self.__read_snapshot()
+
 
     @property
     def parameters(self):
@@ -293,7 +303,7 @@ class Snapshot(object):
 
     def step(self,n=1):
         """ 
-        Advance to next snapshot. Useful when the snapshotfile.
+        Advance to next snapshot. 
         Usefull when there is a single snapshotfile.
         """
         if not self._singlefile:
@@ -424,7 +434,9 @@ class Snapshot(object):
             if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
                 #truncated power law potential
                 r = numpy.sqrt(x**2 + y**2 + z**2 ) 
-                result = - G*Mgas*(r/Rcore)**(3.0 - self.inputfile["KRHO"] )/r
+                krho = self.inputfile["KRHO"]
+                #result = - G*Mgas*(r/Rcore)**(3.0 - self.inputfile["KRHO"] )/r
+                result = G*Mgas*((r/Rcore)**(2-krho) - 3.0 + krho)/Rcore/(2-krho)
                 result[ r > Rcore ] = - G * Mgas / r[r > Rcore]
             else:
                 result = x*0.0
