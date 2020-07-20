@@ -6,7 +6,8 @@ if r != 0:
 from matplotlib import pyplot
 from matplotlib import animation
 import numpy
-from nbody6tools.Reader import read_snapshot,get_number_of_snapshots,parse_inputfile,Options
+from nbody6tools.Reader import (read_snapshot,get_number_of_snapshots,
+                                parse_inputfile,Options,get_globals )
 
 def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_bound=False,**kw):
     """
@@ -68,13 +69,15 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     if output is None :
         pyplot.show()
     else:
-        movie.save(output,fps=fps,dpi=dpi)
+        movie.save(output,fps=int(fps),dpi=dpi)
 
 def evol(folder,output=None,parameter="fbin",**kw):
     if parameter == "fbin":
         p_fbin(folder,**kw)
     elif parameter == "lagr":
         p_lagr(folder,**kw)
+    elif parameter == "total_energy":
+        p_total_energy(folder,**kw)
 
     if output is None:
         pyplot.show()
@@ -160,3 +163,9 @@ def p_lagr(folder,ax = pyplot.gca(),kind="lagr",inputfile="input",
     ax.set_ylabel(ylabel)
     ax.set_xlabel("time (Myr)")
     #ax.set_xscale("log")
+
+def p_total_energy(folder,ax= pyplot.gca(), **kw):
+    gl = get_globals(folder)
+    ax.plot(gl["Time[Myr]"], gl["BE(3)"],"-k" )
+    ax.set_xlabel("Time [Myr]")
+    ax.set_ylabel("Total Energy (Nbunits)")
