@@ -28,7 +28,9 @@ def compute(folders,function,args=None,output=None,overwrite=False,
                              aborted for this folder.
     """
 
-    function = local_variables[function]
+    #check if functuion is a customized function, otherwise look in this module
+    if not callable(function):
+        function = local_variables[function]
 
     if doc:
         print(function.__doc__)
@@ -76,6 +78,8 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             print("File %s exists, skipping. Try --overwrite option"%outputfile)
             sys.stdout.flush()
             sys.stderr.flush()
+            if len(folders) == 1:
+                raise FileExistsError()
             continue
 
         resultfile.write("# function %s with extra arguments: %s \n"%(
@@ -118,8 +122,9 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             sys.stdout.flush()
             sys.stderr.flush()
         resultfile.close()
+        return 0
 
-def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
+def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.7,**args):
     """ 
     Calculate the Q parameter (##add ref).
     extra arguments:
@@ -130,10 +135,11 @@ def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.9,**args):
     returns "mean Qparameter","standard error of mean", current rmax
     """
     #snapshot.to_physical() #unnesessary
-    rmax = Utilities.get_mass_radius(snapshot.stars,rmax)
-    x = snapshot.stars["x"]
-    y = snapshot.stars["y"]
-    z = snapshot.stars["z"]
+    stars = snapshot.unresolved_stars
+    rmax = Utilities.get_mass_radius(stars,rmax)
+    x = stars["x"]
+    y = stars["y"]
+    z = stars["z"]
     r = numpy.sqrt(x**2+y**2+z**2)
     mask =  r < rmax
     result = qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
