@@ -614,6 +614,8 @@ class Particles(Methods):
         self.__index = 0
         self.__center = numpy.array(center)
         self.__center_velocity = numpy.array([0.,0.,0.])
+        self.__r = None
+        self.__v = None
 
     @property
     def center(self):
@@ -621,6 +623,23 @@ class Particles(Methods):
     @property
     def physical(self):
         return self.__physical
+
+    @property
+    def r(self):
+        if self.__r is None:
+            self.__r = numpy.sqrt( (self.x - self.center[0])**2 
+                                  +(self.y - self.center[1])**2  
+                                  +(self.z - self.center[2])**2)
+        return self.__r
+
+    @property
+    def v(self):
+        if self.__v is None:
+            self.__v = numpy.sqrt( (self.vx - self.center_velocity[0])**2 
+                                  +(self.vy - self.center_velocity[1])**2  
+                                  +(self.vz - self.center_velocity[2])**2)
+        return self.__v 
+
 
     def to_physical(self,parameters):
         """
@@ -695,6 +714,7 @@ class Particles(Methods):
         print("setting center",center)
         if len(center) == 3:
             self.__center = numpy.array(center,dtype=numpy.float32)
+            self.__r = None #need to be recalulated
         else:
             raise ValueError("Particles center must have length 3")
 
