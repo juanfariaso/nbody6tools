@@ -18,6 +18,8 @@ def get_mass_radius(starsraw,fraction=0.5,direction="average"):
         r = numpy.abs(stars["y"]) * numpy.sqrt(3.0)
     elif direction == "z":
         r = numpy.abs(stars["z"]) * numpy.sqrt(3.0)
+    else:
+        raise Exception("direction [%s] not identified"%direction )
     isort  = numpy.argsort(r)
 
     if mcut < stars["mass"][isort[0]]:
