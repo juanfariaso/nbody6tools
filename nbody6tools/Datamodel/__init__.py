@@ -337,7 +337,7 @@ class Snapshot(object):
                 ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#v
                 ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
                 ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
-                ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
+                ,numpy.dtype( (numpy.int32  ,NTOT) ) #kstar
               )
       return record
 
@@ -399,6 +399,10 @@ class Snapshot(object):
         stars_dict["vz"] = X[2,:]
         stars_dict["pot"] = record[6]
         stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:])
+        if self.inputfile["KZ"][50] >0 :
+            stars_dict["kstar"] = record[8]
+        else:
+            stars_dict["kstar"] = stars_dict["name"] * 0 - 999 #not known
 
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
 
