@@ -16,7 +16,8 @@ except ImportError:
 local_variables = locals()
 
 def compute(folders,function,args=None,output=None,overwrite=False,
-            fmt ="%10.7g",doc=False,stdout=None,badTol=10,bar_pos=None,**kw):
+            fmt ="%10.7g",doc=False,stdout=None,badTol=10,bar_pos=None,
+            leave_bar=True,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
@@ -93,7 +94,8 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             function.__name__,str(args) ) )
         resultfile.write("# time   time[Myr]  results  \n")
         if not scriptmode and fancy_bar:
-            pbar = tqdm(total=ns, position=bar_pos, desc="[%s]%s"%(bar_pos,folder))
+            pbar = tqdm(total=ns, position=bar_pos,
+                    desc="[%s]%s"%(bar_pos,folder),leave=leave_bar)
         for i in range(ns):
             if not scriptmode:
                 if fancy_bar :
