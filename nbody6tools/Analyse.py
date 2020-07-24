@@ -6,10 +6,17 @@ import sys
 
 import numpy
 
+try :
+    from tqdm import tqdm
+    fancy_bar = True
+except ImportError:
+    fancy_bar = False
+    
+
 local_variables = locals()
 
 def compute(folders,function,args=None,output=None,overwrite=False,
-            fmt ="%10.7g",doc=False,stdout=None,badTol=10,**kw):
+            fmt ="%10.7g",doc=False,stdout=None,badTol=10,bar_pos=None,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
@@ -61,7 +68,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
     for folder in folders:
         nbad = 0 
         #parse the extra arguments if any
-        if len(folders) > 1 and not scriptmode:
+        if len(folders) > 1 and not scriptmode and not type(folders)==str:
             print("Working on folder %s"%folder)
 
         ns = get_number_of_snapshots(folder)
@@ -85,9 +92,14 @@ def compute(folders,function,args=None,output=None,overwrite=False,
         resultfile.write("# function %s with extra arguments: %s \n"%(
             function.__name__,str(args) ) )
         resultfile.write("# time   time[Myr]  results  \n")
+        if not scriptmode and fancy_bar:
+            pbar = tqdm(total=ns, position=bar_pos, desc="[%s]%s"%(bar_pos,folder))
         for i in range(ns):
             if not scriptmode:
-                print("Snapshot: %i/%i    "%(i,ns),end="\r")
+                if fancy_bar :
+                    pbar.update(1)
+                else:
+                    print("Snapshot: %i/%i    "%(i,ns),end="\r")
             try:
                 sn = read_snapshot(folder,i,inputfilename="input")
             except:
@@ -116,7 +128,10 @@ def compute(folders,function,args=None,output=None,overwrite=False,
                 resultfile.write( " "+fmt%(fout) )
             resultfile.write("\n")
         if not scriptmode:
-            print("\n")
+            if fancy_bar:
+                pbar.close()
+            else:
+                print("\n")
         else:
             print("%s Done"%outputfile)
             sys.stdout.flush()
