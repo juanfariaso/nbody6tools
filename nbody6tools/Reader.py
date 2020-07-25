@@ -31,6 +31,23 @@ def get_globals(folder):
         result[h] = data[:,i]
     return result
 
+def get_events(folder):
+    "find last block of globals that is good"
+    x = open("%s/event.35"%folder,"r").readlines()
+    it = [ i for i in range(len(x)) if "TIME" in x[i] ]  #find headers if more than one
+    #header = x[it[-1]] 
+    header = "TIME[Myr] NDISS  NTIDE  NSYNC NCOLL NCOAL NDD NCIRC NROCHE NRO NCE NHYP NHYPC NKICK EBIN EMERGE ECOLL EMDOT ECDOT EKICK ESESC EBESC EMESC DEGRAV EBIND MMAX NMDOT NRG NHE NRS NNH NWD NSN NBH NBS ZMRG ZMHE ZMRS ZMNH ZMWD ZMSN ZMDOT"
+    header = header.split()
+    data = numpy.loadtxt(x[it[-1]+1:] )
+    result = dict() 
+    for i,h in enumerate(header):
+        result[h] = data[:,i]
+    result["NTYPE"]= [0]
+    for i in range(42,57):
+        result["NTYPE"].append( data[:,i] )
+    return result
+
+
 def parse_inputfile(inputfilename=inputFile,**kw):
     """%s
     """%Datamodel.parse_inputfile.__doc__
@@ -51,8 +68,11 @@ def get_times(folder,nbody=False,inputfilename=inputFile):
     key = "TIME[NB]" if nbody else "TIME[Myr]"
     return glfile[key][0::inputfile["NFIX"] ]
 
-def read_snapshot(folder,snapshot=0,inputfilename=inputFile,singlefile=singleFile,
+def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile=singleFile,
         snapshotfile = snapshotFile):
+    if time is not None:
+        times = get_times(folder)
+        snapshot = numpy.where( times >= time )[0][0]
 
     inputfile ="%s/%s"%(folder,inputfilename)
 
