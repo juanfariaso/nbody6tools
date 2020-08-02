@@ -40,6 +40,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
     if not callable(function):
         function = local_variables[function]
 
+
     if doc:
         print(function.__doc__)
         return
@@ -139,7 +140,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             sys.stdout.flush()
             sys.stderr.flush()
         resultfile.close()
-        return 0
+    return 0
 
 def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.7,**args):
     """ 
