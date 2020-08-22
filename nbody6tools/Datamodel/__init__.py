@@ -71,7 +71,7 @@ def parse_inputfile(inputfilename):
                 ["SFR", "N00", "DTGF"],[float]*3)
     if KZ[50] == 2 :
         parseline(inputfile.readline(),result,
-                ["NT", "ITSTART", "GRIDSIZE", "DTT","THRESHOLD","BGVEL","TFOLDER"],[int,int,float,float,float,float,str])
+                ["NT", "ITSTART", "GRIDSIZE","DTT","THRESHOLD","MBG","BGVEL","TFOLDER"],[int,int,float,float,float,float,float,str])
         tfold = result["TFOLDER"] 
         result["TFOLDER"] = tfold.strip("\"").strip("\'")
 
@@ -399,7 +399,7 @@ class Snapshot(object):
         stars_dict["vz"] = X[2,:]
         stars_dict["pot"] = record[6]
         stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:])
-        if self.inputfile["KZ"][50] >0 :
+        if self.inputfile["KZ"][50] ==1 :
             stars_dict["kstar"] = record[8]
         else:
             stars_dict["kstar"] = stars_dict["name"] * 0 - 999 #not known
