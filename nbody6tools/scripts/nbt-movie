@@ -209,7 +209,8 @@ def fancy_movie(DataFolder,inputfile = Reader.inputFile ,output = None,fps=10,mo
                 return sc_stars,
 
     movie = animation.FuncAnimation(fig, update_line, len(frames), fargs=(sc_stars,imbg,frames),blit=True)
-    movie.save(output,fps=fps,dpi=dpi,writer="imagemagick") 
+    #movie.save(output,fps=fps,dpi=dpi,writer="imagemagick") 
+    movie.save(output,fps=fps,dpi=dpi,writer="ffmpeg") 
     print("\nDone")
 
 def powerlaw_gas(opt,parameters,time,ax=pyplot.gca(),update=False,imobj=None,cmap="magma",zlog=False,colorbar=False,get_limits=False,**kw):
@@ -280,7 +281,8 @@ def plotgas(DataFolder,time,ax=pyplot.gca(),update = False,imobj=None,get_limits
         f = FortranFile(tfolder+"/%04i"%i,"r")
         dims = f.read_ints(dtype=numpy.int32) #are wrong for some reason
         dims = numpy.array([128,128,128])
-        rho = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
+        #rho = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
+        rho = f.read_reals().reshape(dims,order="F")
         #rho [rho<threshold ] = 0
         rho *= mcl
         #rho /= rho.sum()
@@ -292,7 +294,7 @@ def plotgas(DataFolder,time,ax=pyplot.gca(),update = False,imobj=None,get_limits
         #vy = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
         #vz = f.read_reals(dtype=numpy.float32).reshape(dims,order="F")
 
-    cdens = rho.sum(axis=2).T #TODO: Able to choose projection
+    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
     if zlog:
         cdens = numpy.log10(cdens)
     if get_limits :
