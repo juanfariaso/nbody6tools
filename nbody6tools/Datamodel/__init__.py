@@ -313,31 +313,33 @@ class Snapshot(object):
         pass
 
     def __read_record(self):
+      inttype = numpy.int32
+      floattype = numpy.float32
       kz = self.inputfile["KZ"]
-      NTOT,MODEL,NDRUN,NK = tuple(self.__recordfile.read_ints(dtype=numpy.int32))
+      NTOT,MODEL,NDRUN,NK = tuple(self.__recordfile.read_ints(dtype=inttype))
       self._ntot = NTOT
       if not kz[50] == 1 : 
          record = self.__recordfile.read_record(
-                 numpy.dtype( (numpy.float32,NK)   ) #AS
-                ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
-                ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
-                ,numpy.dtype( (numpy.float32,NTOT) ) #xns
-                ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#x
-                ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#v
-                ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
-                ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
+                 numpy.dtype( (floattype,NK)   ) #AS
+                ,numpy.dtype( (floattype,NTOT) ) #bodys
+                ,numpy.dtype( (floattype,NTOT) ) #rhos
+                ,numpy.dtype( (floattype,NTOT) ) #xns
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#x
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#v
+                ,numpy.dtype( (floattype,NTOT  ) )#phi
+                ,numpy.dtype( (inttype  ,NTOT) ) #name
               )
       if kz[50] == 1 : 
          record = self.__recordfile.read_record(
-                 numpy.dtype( (numpy.float32,NK)   ) #AS
-                ,numpy.dtype( (numpy.float32,NTOT) ) #bodys
-                ,numpy.dtype( (numpy.float32,NTOT) ) #rhos
-                ,numpy.dtype( (numpy.float32,NTOT) ) #xns
-                ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#x
-                ,numpy.dtype( (numpy.float32,(NTOT*3) ) )#v
-                ,numpy.dtype( (numpy.float32,NTOT  ) )#phi
-                ,numpy.dtype( (numpy.int32  ,NTOT) ) #name
-                ,numpy.dtype( (numpy.int32  ,NTOT) ) #kstar
+                 numpy.dtype( (floattype,NK)   ) #AS
+                ,numpy.dtype( (floattype,NTOT) ) #bodys
+                ,numpy.dtype( (floattype,NTOT) ) #rhos
+                ,numpy.dtype( (floattype,NTOT) ) #xns
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#x
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#v
+                ,numpy.dtype( (floattype,NTOT  ) )#phi
+                ,numpy.dtype( (inttype,NTOT) ) #name
+                ,numpy.dtype( (inttype,NTOT) ) #kstar
               )
       return record
 
@@ -625,6 +627,10 @@ class Particles(Methods):
     @property
     def center(self):
         return self.__center
+    @property
+    def center_velocity(self):
+        return self.__center_velocity
+
     @property
     def physical(self):
         return self.__physical
