@@ -173,6 +173,12 @@ class Snapshot(object):
         """
         return self.__allstars[ (self.__allstars.name <= self.n)
                                *(self.__allstars.name > 0)  ]
+    @property
+    def allparticles(self):
+        """ Dict. containing stellar coordinates:
+        mass, x,y,z, vx,vy,vz,epot
+        """
+        return self.__allstars[ (self.__allstars.name > 0)  ]
 
     @property
     def unresolved_stars(self):
@@ -196,6 +202,20 @@ class Snapshot(object):
         Bound set of stars, with unresolved hard binaries
         """
         return self.__bound_stars(False)
+
+    @property
+    def unbound_stars(self):
+        """
+        Bound set of particles
+        """
+        return self.__unbound_stars(True)
+
+    @property
+    def unbound_stars_unresolved(self):
+        """
+        Bound set of stars, with unresolved hard binaries
+        """
+        return self.__unbound_stars(False)
 
     @property
     def inputfile(self):
@@ -261,6 +281,21 @@ class Snapshot(object):
             return bound_unresolved
         else:
             return self.resolve_set(bound_unresolved)
+
+    def __unbound_stars(self,resolved=True):
+        """Return unbound subset of stars.
+        arguments:
+            resolved : if true, all binaries are resolved. if False, center of
+            mass particles are returned. Default: True
+        """
+        stars = self.unresolved_stars
+        bmask = abs(stars.epot + stars.pot)*stars.mass \
+                <=0.5*stars.mass*stars.v**2 #numpy.array(stars.vx**2+stars.vy**2+stars.vz**2) 
+        unbound_unresolved = stars[bmask]
+        if not resolved:
+            return unbound_unresolved
+        else:
+            return self.resolve_set(unbound_unresolved)
 
     def virial_energy_of_set(self,particles):
         """
@@ -407,6 +442,7 @@ class Snapshot(object):
             stars_dict["kstar"] = stars_dict["name"] * 0 - 999 #not known
 
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
+        allparticles.I = numpy.arange(1,self.ntot+1,1)
 
         self.__stars = allparticles[mask_stars]
         self.__allstars = allparticles
@@ -729,6 +765,13 @@ class Particles(Methods):
         else:
             raise ValueError("Particles center must have length 3")
 
+    def copy(self):
+        outputdict = dict()
+        for key  in self.__data.keys() :
+            outputdict[key] = self.__data[key].copy()
+        return Particles(outputdict,center=self.center,physical=self.physical)
+
+
     def __sanity_check(self):
         l=[]
         for key in self.__data:
@@ -782,6 +825,7 @@ class Particles(Methods):
         self.__dict__[key] = value
         if particle_attribute :
             self.__data[key] = value
+
 
     def __len__(self):
         return self.__n
