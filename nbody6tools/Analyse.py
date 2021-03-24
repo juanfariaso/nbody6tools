@@ -5,6 +5,7 @@ from nbody6tools.Datamodel import get_binaries_from_files
 import sys
 
 import numpy
+from multiprocessing import Pool
 
 try :
     from tqdm import tqdm
@@ -17,14 +18,20 @@ local_variables = locals()
 
 def compute(folders,function,args=None,output=None,overwrite=False,
             fmt ="%10.7g",doc=False,stdout=None,badTol=10,bar_pos=None,
-            leave_bar=True,**kw):
+            leave_bar=True,strict =False,**kw):
     """ 
     Evaluate function at every snapshot and saves result
     in a file
     folder                 : Simulation folder
     funcion(snapshot,**kw) : the function to evaluate, should accept
                         a snapshot object as input and return
-                        a tuple of the resulting values (if more than one)
+                        a tuple of the resulting values (if more than one).
+                        If function has a docstring, a line will be searched
+                        with the format:
+            headers: header1  header2 header3 ..
+                        everithing after "headers:" will be used as header for the
+                        outupt file. header1 should identify the first output
+                        value of function, etc.
     args                   : extra arguments (list of strings like: ['arg1=value']
                              'value' can only floats. comma sepparated arguments will be used as lists
                              e.g. 'arg1=1.0,2,3.0,4' is interpreted as 'arg1 = [1.0,2.0,3.0,4.0]'
@@ -45,6 +52,18 @@ def compute(folders,function,args=None,output=None,overwrite=False,
         print(function.__doc__)
         return
 
+    headers = ""
+    if function.__doc__ is not None:
+        for line in function.__doc__.split("\n"):
+            if "headers:" in line: 
+                headers = line.split(":")[-1].replace("\n","")
+        
+    
+
+    if strict:
+        iException = AssertionError
+    else:
+        iException = Exception
 
     scriptmode = False
     if stdout is not None:
@@ -93,10 +112,11 @@ def compute(folders,function,args=None,output=None,overwrite=False,
 
         resultfile.write("# function %s with extra arguments: %s \n"%(
             function.__name__,str(args) ) )
-        resultfile.write("# time   time[Myr]  results  \n")
+        resultfile.write("# time   time[Myr]  %s  \n"%headers )
         if not scriptmode and fancy_bar:
             pbar = tqdm(total=ns, position=bar_pos,
                     desc="[%s]%s"%(bar_pos,folder),leave=leave_bar)
+        nresult = 1
         for i in range(ns):
             if not scriptmode:
                 if fancy_bar :
@@ -105,14 +125,14 @@ def compute(folders,function,args=None,output=None,overwrite=False,
                     print("Snapshot: %i/%i    "%(i,ns),end="\r")
             try:
                 sn = read_snapshot(folder,i,inputfilename="input")
-            except:
+            except :
                 break
             t = sn.parameters["time"]
             tscale = sn.parameters["tscale"]
             resultfile.write( (fmt+"  "+fmt)%( t,t*tscale ) )
             try:
                 fout = function(sn,**kwargs)
-            except:
+            except iException:
                 nbad+=1
                 if nbad > badTol :
                     print("Warning: Too many bad evaluations of function %s"%
@@ -120,9 +140,13 @@ def compute(folders,function,args=None,output=None,overwrite=False,
                     print(" skipping folder %s"%folder)
                     break
                 else:
-                    resultfile.write("  nan \n")
+                    for _ in range(nresult) :
+                        resultfile.write("  nan ")
+                    resultfile.write("\n")
                     continue
-            #print(str(fout)+"\r")
+            if hasattr(fout,"__len__") :
+                nresult = len(fout)
+            print(str(fout)+"\r")
             nout = len(fout) if hasattr(fout,"__len__") else 1
             if nout > 1:
                 for j in range(nout):
@@ -141,6 +165,12 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             sys.stderr.flush()
         resultfile.close()
     return 0
+
+def compute_multithread(folders,function,**kw):
+    
+
+    pbar = tqdm("Completed Files:")
+
 
 def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.7,**args):
     """ 
@@ -262,7 +292,7 @@ def core_radius(snapshot):
     snapshot.to_physical()
     stars = snapshot.unresolved_stars
     #rcenter = stars.mass_radius(fraction=0.01)
-    r = numpy.sqrt(stars.x**2 + stars.y**2 + stars.z**2)
-    
+    #r = numpy.sqrt(stars.x**2 + stars.y**2 + stars.z**2)
+    r = stars.r
     nc = (r<=rcore).sum()
     return  rcore , 3.*nc/4./numpy.pi/rcore**3
