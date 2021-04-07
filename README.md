@@ -3,6 +3,15 @@ Readme
 # nbody6tools
 A set of tools for Nbody6 simulations.
 
+## Install
+
+After cloning, from inside clonning folder just do:
+
+pip install ./
+
+This package only works with python3
+
+
 ## Quick Tutorial:
 
 Once installed you only need to do:
