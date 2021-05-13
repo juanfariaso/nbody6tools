@@ -283,9 +283,12 @@ def number_density(snapshot,mass_fraction_radii = 0.5) :
     """
     snapshot.to_physical()
     stars = snapshot.bound_stars_unresolved #unresolved is faster
-    n = (stars.name <= snapshot.n) + 2*(stars.name > snapshot.n )
     r = stars.mass_radius(fraction=mass_fraction_radii) 
-    return len(stars) * 3./4./numpy.pi/r**3 
+    stars.to_center()
+    stars = stars[ stars.r < r ]
+
+    n = (stars.name <= snapshot.n).sum() + 2*(stars.name > snapshot.n ).sum()
+    return n * 3./4./numpy.pi/r**3 
 
 def core_radius(snapshot):
     rcore = snapshot.parameters["rc"] * snapshot.parameters["rbar"]
