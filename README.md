@@ -40,7 +40,7 @@ You can come back to nbody if you like with the `.to_nbody()` function.
 
 Then the particles are obtained with:
 
-`stars = snapshot.stars`
+`stars = snapshot.stars`https://github.com/juanfariaso
 
 `stars` is a Particles object defined in `Datamodel`. It have several useful functions, but basically give you access to the stellar quantities like for instance:
 ```
@@ -81,6 +81,8 @@ Outside a python script you also should have access to the standalone programs
 
 Do `nbtools -h` and `nbt-movie -h` for help.
 
+
+# Disclaimer
 I made this just for things I used for my PhD. So there are many options from Nbody6 that may not be implemented, and also options here that only work for my custom versions of Nbody6.
 Please let me know if there is any feature you need and I'll implement it.
 
