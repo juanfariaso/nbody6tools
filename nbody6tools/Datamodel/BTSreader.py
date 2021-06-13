@@ -6,7 +6,7 @@ from nbody6tools import Reader
 #def get_scale_factors(inputpar):
 class Converter(object):
     def __init__(self,inputfile):
-        self.input = Reader.parse_inputfile(inputfile)
+        self.inputpar = Reader.parse_inputfile(inputfile)
         self.initialize()
 
     def initialize(self):
@@ -17,14 +17,15 @@ class Converter(object):
         PC = 3.0856776e+18
         self.RBAR = self.inputpar["RBAR"]
         self.ZMBAR = self.inputpar["ZMBAR"]
-        N = inputpar["N"]
+        N = self.inputpar["N"]
+        self.ZMASS = self.ZMBAR * N
 
         #Form time scale in seconds and velocity scale in km/sec.
         self.TSTAR = numpy.sqrt(PC/GM)*PC
 
         #Convert time scale from units of seconds to million years.
         self.TSTAR = self.TSTAR/(3.15e+07*1.0e+06)
-        if (inputpar["KZ"][22] != 10) :
+        if (self.inputpar["KZ"][22] != 10) :
              self.VSTAR = 1.0e-05*numpy.sqrt(GM/PC)
 
         #Ensure ZMBAR & RBAR > 0 (=0: assume <M>/Sun = 1, RBAR = 1 pc).
@@ -167,8 +168,8 @@ class H5nb6xxSnapshot(object):
         self.data = self.__emptyData.copy()
         self.data_next = self.__emptyData.copy()
         self.data_interp = self.__emptyData.copy()
+        self.current_step_data = self.__emptyData.copy()
             
-
     def initialize_code(self):
         self.initialize_snapshot_list()
         tmin = self.tstart[0]
@@ -182,7 +183,7 @@ class H5nb6xxSnapshot(object):
         self.load_next_step_data()
 
     def load_current_step_data(self):
-        self.data,self.current_time = self.get_data_by_step_id(self.step_id)
+        self.current_step_data,self.current_time = self.get_data_by_step_id(self.step_id)
 
     def get_data_by_step_id(self, stepid):
         data_dict = self.__emptyData.copy() 
@@ -191,6 +192,9 @@ class H5nb6xxSnapshot(object):
             if data_key in Step :
                 StepData = Step[data_key][()]
                 data_dict[data_key] = StepData
+
+            
+
         return data_dict,Step.attrs["Time"]
 
     def load_prev_step_data(self):
@@ -230,20 +234,19 @@ class H5nb6xxSnapshot(object):
                 ids_to_add = numpy.invert(numpy.isin(ids_in_step,id_vec) )
                 #to_add_order = numpy.argsort(ids_in_step[ids_to_add] )
 
-                n1 = ids_not_stored.sum()
-                n2 = (ids_to_update).sum()
+                n1 = numpy.sum(ids_not_stored)
+                n2 = numpy.sum(ids_to_update)
                 
                 assert  n1+n2 == len(id_vec)
-                for key in self.dataset_list :
-                    key_dtype  = self.data[key].dtype
-                    #not stored first:
-                    self.data[key][0:n1] = self.data[key][ids_not_stored][not_stored_order] 
-                    #stored, need update
-                    self.data[key][n1:n1+n2] = data_new[key][ids_to_update][to_update_order]
-                    #new stars
-                    self.data[key] = numpy.concatenate((self.data[key],
-                                                   data_new[key][ids_to_add] )
-                                                  ).astype(key_dtype)
+                data = self.__emptyData.copy()
+                #not stored first:
+                self.append_data(data,self.data,ids_not_stored,not_stored_order)
+                #stored, need update
+                self.append_data(data,data_new,ids_to_update,to_update_order)
+                #new stars
+                self.append_data(data,data_new,ids_to_add)
+                self.data = data
+
                 new_step_vec = numpy.zeros_like(self.data["NAM"],dtype=numpy.float32)
                 new_step_vec[0:n1]= self.step_vec[ids_not_stored][not_stored_order]
                 new_step_vec[n1:] = tstep
@@ -266,7 +269,7 @@ class H5nb6xxSnapshot(object):
     def load_next_step_data(self):
         id_vec = self.id_vec
         snapid0 = self.snapshot_id
-        stepid0 = self.step_id
+        stepid0 = self.step_id +1
         found_ids = numpy.array([])
         found_tstep = numpy.array([])
         found_data = self.__emptyData.copy() 
@@ -292,23 +295,26 @@ class H5nb6xxSnapshot(object):
                 just_found  =  numpy.invert(already_found) * numpy.invert(unknown)
                 for group in [ just_found, unknown ]: 
                     order = numpy.argsort(sids[group])
-                    for key in self.dataset_list : 
-                        if key in Step: 
-                            found_data[key] = numpy.concatenate([
-                                            found_data[key],
-                                            Step[key][group][order]   
-                                            ])
+                    # for key in self.dataset_list : 
+                        # if key in Step: 
+                            # key_type = Step[key].dtype
+                            # found_data[key] = numpy.concatenate([
+                                            # found_data[key],
+                                            # Step[key][group][order]   
+                                            # ]).astype(key_type)
+                    self.append_data(found_data,Step,group,order)
                     found_tstep = numpy.concatenate([
                             found_tstep,
                             numpy.ones_like(sids[group])*tstep
                             ])
                 
-                found_ids = numpy.concatenate([found_ids,sids[just_found] ] )
+                found_ids = numpy.concatenate([found_ids,sids[just_found]
+                    ] ).astype(int)
                 print(" Found: %i/%i"%(
-                    numpy.isin(id_vec,found_ids,invert=False).sum(),
+                    numpy.sum(numpy.isin(id_vec,found_ids,invert=False)),
                     len(id_vec)
                     ))
-                if numpy.isin(id_vec,found_ids,invert=True).sum() == 0:
+                if numpy.sum(numpy.isin(id_vec,found_ids,invert=True)) == 0:
                     done = True
                     break
             if done:
@@ -328,11 +334,14 @@ class H5nb6xxSnapshot(object):
         ifound = numpy.argsort(found_data["NAM"][found] ) 
         inew = numpy.argsort(found_data["NAM"][new] ) 
         
-        for key in found_data : 
-            found_data[key] = numpy.concatenate([
-                found_data[key][found][ifound],
-                found_data[key][new][inew]
-            ])
+        data = self.__emptyData.copy()
+        self.append_data( data,found_data,found,ifound )
+        self.append_data( data,found_data,new,inew )
+        # for key in found_data : 
+            # found_data[key] = numpy.concatenate([
+                # found_data[key][found][ifound],
+                # found_data[key][new][inew]
+            # ])
         found_tstep = numpy.concatenate([found_tstep[found][ifound],
                                                 found_tstep[new][inew]
                                                 ])
@@ -342,13 +351,15 @@ class H5nb6xxSnapshot(object):
         return 0
 
     def append_data(self,data,data_new,mask=None,order=None):
+        mask = range(len(data["NAM"])) if mask is None else mask
+        order = range(len(data["NAM"])) if order is None else order
         for key in self.dataset_list : 
             key_dtype = data_new[key].dtype
             if key in data_new: 
                 data[key] = numpy.concatenate([
-                                found_data[key],
+                                data[key],
                                 data_new[key][mask][order]   
-                                ]).asdtype(key_dtype)
+                                ]).astype(key_dtype)
         return
 
     def evolve_model(self,time):
@@ -358,7 +369,7 @@ class H5nb6xxSnapshot(object):
     def evolve_step(self):
         self.step_id += 1 
         if self.current_time + self.step_dt > self.tend[self.snapshot_id] :
-            self.snapshot_id +=1 
+            self.snapshot_id += 1 
             self.set_current_snapshot(self.snapshot_id)
             self.step_id = 0
         self.load_current_step_data()
