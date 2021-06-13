@@ -185,9 +185,12 @@ class H5nb6xxSnapshot(object):
     def load_current_step_data(self):
         self.current_step_data,self.current_time = self.get_data_by_step_id(self.step_id)
 
-    def get_data_by_step_id(self, stepid):
+    def get_data_by_step_id(self, stepid,h5file=None):
+
         data_dict = self.__emptyData.copy() 
-        Step = self.h5part_file["Step#%d" % stepid ]
+        h5part_file = self.h5part_file if h5file is None else h5file
+
+        Step = h5part_file["Step#%d" % stepid ]
         for data_key in self.dataset_list :
             if data_key in Step :
                 StepData = Step[data_key][()]
@@ -303,7 +306,7 @@ class H5nb6xxSnapshot(object):
 
             nsteps = len(h5file) 
             for istep in range(stepid0,nsteps):
-                idata,tstep = self.get_data_by_step_id(istep)
+                idata,tstep = self.get_data_by_step_id(istep,h5file)
                 #Step =  h5file["Step#%d"%istep]
                 #tstep = Step.attrs["Time"]
                 sids = idata["NAM"]
