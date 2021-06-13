@@ -192,9 +192,28 @@ class H5nb6xxSnapshot(object):
             if data_key in Step :
                 StepData = Step[data_key][()]
                 data_dict[data_key] = StepData
+        if "Binaries" in Step:
+            Bstep = Step["Binaries"]
+            bprim = dict()
+            bsec = dict()
+            Mcm = Bstep["M1"][()] + Bstep["M2"][()]
+            for k in [1,2,3]:
+                bprim["X%i" % k] = (Bstep["XC%i" % k][()] +
+                                    Bstep["M2"][()]/Mcm*Bstep["XR%i" % k][()] )
+                bsec["X%i"%k] = bprim["X%i"%k][()] + Bstep["XR%i"%k][()]
+                bprim["V%i"%k] = (Bstep["VC%i"%k][()] 
+                        + Bstep["M2"][()]/Mcm*Bstep["VR%i"%k][()] )
+                bsec["V%i"%k] = bprim["V%i"%k][()] + Bstep["VR%i"%k][()]
 
-            
+            for k in ["KW","L","M","MC","NAM","RC","RS","TE" ]:
+                bprim[k] = Bstep["%s1"%k ][()]
+                bsec[k] = Bstep["%s2"%k ][()]
 
+            #TODO: This must be fixed. Calculate the right potential for each member
+            bprim["POT"] = Bstep["POT"] 
+            bsec["POT"] = Bstep["POT"] 
+            self.append_data(data_dict,bprim)
+            self.append_data(data_dict,bsec)
         return data_dict,Step.attrs["Time"]
 
     def load_prev_step_data(self):
@@ -284,9 +303,10 @@ class H5nb6xxSnapshot(object):
 
             nsteps = len(h5file) 
             for istep in range(stepid0,nsteps):
-                Step =  h5file["Step#%d"%istep]
-                tstep = Step.attrs["Time"]
-                sids = Step["NAM"]
+                idata,tstep = self.get_data_by_step_id(istep)
+                #Step =  h5file["Step#%d"%istep]
+                #tstep = Step.attrs["Time"]
+                sids = idata["NAM"]
                 print("Scanning file: %s - Time: %.3f          "%(
                     h5file.filename,tstep   ),end="" )
                 already_found = numpy.isin(sids,found_ids) 
@@ -295,14 +315,7 @@ class H5nb6xxSnapshot(object):
                 just_found  =  numpy.invert(already_found) * numpy.invert(unknown)
                 for group in [ just_found, unknown ]: 
                     order = numpy.argsort(sids[group])
-                    # for key in self.dataset_list : 
-                        # if key in Step: 
-                            # key_type = Step[key].dtype
-                            # found_data[key] = numpy.concatenate([
-                                            # found_data[key],
-                                            # Step[key][group][order]   
-                                            # ]).astype(key_type)
-                    self.append_data(found_data,Step,group,order)
+                    self.append_data(found_data,idata,group,order)
                     found_tstep = numpy.concatenate([
                             found_tstep,
                             numpy.ones_like(sids[group])*tstep
@@ -351,8 +364,8 @@ class H5nb6xxSnapshot(object):
         return 0
 
     def append_data(self,data,data_new,mask=None,order=None):
-        mask = range(len(data["NAM"])) if mask is None else mask
-        order = range(len(data["NAM"])) if order is None else order
+        mask = range(len(data_new["NAM"])) if mask is None else mask
+        order = range(len(data_new["NAM"])) if order is None else order
         for key in self.dataset_list : 
             key_dtype = data_new[key].dtype
             if key in data_new: 
