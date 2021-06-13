@@ -181,6 +181,7 @@ class H5nb6xxSnapshot(object):
         self.initialize_data()
         self.load_prev_step_data() #this advance the code until requested time
         self.load_next_step_data()
+        self.load_current_step_data() #active particles
 
     def load_current_step_data(self):
         self.current_step_data,self.current_time = self.get_data_by_step_id(self.step_id)
