@@ -40,7 +40,7 @@ You can come back to nbody if you like with the `.to_nbody()` function.
 
 Then the particles are obtained with:
 
-`stars = snapshot.stars`https://github.com/juanfariaso
+`stars = snapshot.stars`
 
 `stars` is a Particles object defined in `Datamodel`. It have several useful functions, but basically give you access to the stellar quantities like for instance:
 ```
