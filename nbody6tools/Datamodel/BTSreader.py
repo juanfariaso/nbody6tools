@@ -365,6 +365,7 @@ class H5nb6xxSnapshot(object):
         self.data_next = found_data
         self.step_next_vec = found_tstep
         self.id_vec_next = found_data["NAM"]
+        self.delta_t  = self.step_next_vec[0:len(self.id_vec)] - self.step_vec
         return 0
 
     def append_data(self,data,data_new,mask=None,order=None):
@@ -379,6 +380,68 @@ class H5nb6xxSnapshot(object):
                                 ]).astype(key_dtype)
         return
 
+    def interpolate(self, to_time):
+        #if self.flag_interp is True:
+        if True:
+            # dt = to_time - self.dt_vec
+            dt = to_time - self.step_vec
+            tau = dt / self.delta_t
+            #if dt < 0:
+            #    dt = 0
+            dt[dt<0] = 0
+            
+
+            dataset_interp = ['X1', 'X2', 'X3']
+            vel = ['V1', 'V2', 'V3']
+            #acc = ['AX', 'AY', 'AZ']
+            #adot = ['JX', 'JY', 'JZ']
+            for dset_id, dset_name in enumerate(dataset_interp):
+                X0 = self.data[dset_name]
+                V0 = self.data[vel[dset_id]]
+                #A0 = self.data[acc[dset_id]]
+                #J0 = self.data[adot[dset_id]]
+                X1 = self.data_next[dset_name]
+                #V1 = self.data_next[vel[dset_id]]
+                #A1 = self.data_next[acc[dset_id]]
+                #J1 = self.data_next[adot[dset_id]]
+
+                p0 = X0
+                p1 = V0 * dt
+                #jpf: I dont have A0 .. 
+                p2 = 0
+                p3 = 0
+                #p2 = 0.5 * A0 * dt * dt
+                #p3 = 1. / 6 * A0 * dt * dt * dt
+                if X0.shape[0] == X1.shape[0]:
+                    #p4 = -1.0 / 6 * (4 * J0 + J1) * dt * dt * dt - 2.5 * (2 * A0 - A1) * dt * dt - 5 * (4 * V0 + 3 * V1) * dt - 35 * (X0 - X1)
+                    #p5 = 0.5 * (2 * J0 + J1) * dt * dt * dt + (10 * A0 - 7 * A1) * dt * dt + 3 * (15 * V0 + 13 * V1) * dt + 84 * (X0 - X1)
+                    #p6 = -1.0 / 6 * (4 * J0 + 3 * J1) * dt * dt * dt - 0.5 * (15 * A0 - 13 * A1) * dt * dt - 2 * (18 * V0 + 17 * V1) * dt - 70 * (X0 - X1)
+                    #p7 = 1.0 / 6 * (J0 + J1) * dt * dt * dt + 2 * (A0 - A1) * dt * dt + 10 * (V0 + V1) * dt + 20 * (X0 - X1)
+                    p4,p5,p6,p7 = 0, 0, 0, 0
+                    pred = p0 + p1 * tau + p2 * pow(tau, 2.0) + p3 * pow(tau, 3.0) + p4 * pow(tau, 4.0) + p5 * pow(tau, 5.0) + p6 * pow(tau, 6.0) + p7 * pow(tau, 7.0)
+                else:
+                    pred = p0 + p1 * tau + p2 * pow(tau, 2.0) + p3 * pow(tau, 3.0)
+                self.data_interp[dset_name] = pred
+
+            for key in self.dataset_list : 
+                if key in self.data and key not in dataset_interp:
+                    self.data_interp[key] = self.data[key]
+            # self.data_interp['Mass'] = self.data['Mass']
+            # self.data_interp['V1'] = self.data['V1']
+            # self.data_interp['V2'] = self.data['V2']
+            # self.data_interp['V3'] = self.data['V3']
+            # self.data_interp['A1'] = self.data['A1']
+            # self.data_interp['A2'] = self.data['A2']
+            # self.data_interp['A3'] = self.data['A3']
+            # self.data_interp['J1'] = self.data['J1']
+            # self.data_interp['J2'] = self.data['J2']
+            # self.data_interp['J3'] = self.data['J3']
+            # self.data_interp['NAM'] = self.data['NAM']
+        else:
+            # No interpolation, just return the data as loaded from the HDF5
+            for dset_name in self.dataset_list:
+                self.data_interp[dset_name] = self.data[dset_name]
+
     def evolve_model(self,time):
         self.step_vec,self.data = self.scan_data(time,
                                   self.step_vec, self.data,1)
@@ -390,6 +453,7 @@ class H5nb6xxSnapshot(object):
             self.set_current_snapshot(self.snapshot_id)
             self.step_id = 0
         self.load_current_step_data()
+        self.interpolate(self.current_time)
 
     def close(self):
         if self.h5part_file is None:
