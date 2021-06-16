@@ -165,10 +165,10 @@ class H5nb6xxSnapshot(object):
         for dset_name in self.dataset_list:
             self.__emptyData[dset_name] = numpy.array([])
         
-        self.data = self.__emptyData.copy()
-        self.data_next = self.__emptyData.copy()
-        self.data_interp = self.__emptyData.copy()
-        self.current_step_data = self.__emptyData.copy()
+        self.data = self.__emptyData.copy() # previous step data (FULL)
+        self.data_next = self.__emptyData.copy() #next step data (FULL)
+        self.data_interp = self.__emptyData.copy() # syncronized data (FULL)
+        self.current_step_data = self.__emptyData.copy() #active partilces only
             
     def initialize_code(self):
         self.initialize_snapshot_list()
@@ -182,9 +182,28 @@ class H5nb6xxSnapshot(object):
         self.load_prev_step_data() #this advance the code until requested time
         self.load_next_step_data()
         self.load_current_step_data() #active particles
+        self.interpolate()
 
     def load_current_step_data(self):
         self.current_step_data,self.current_time = self.get_data_by_step_id(self.step_id)
+        if (self.step_vec != self.current_time).sum() == 0 :
+            self.current_step_data = self.data
+            return
+        nfound = len(self.current_step_data["NAM"])
+        if nfound == 0 :
+            return
+        
+        current_step_vec = numpy.ones(nfound)*self.current_time
+        self.step_vec = self.update_data(self.data,self.step_vec,self.current_step_data,
+                         current_step_vec)
+        self.id_vec = self.data["NAM"]
+
+        data_next_update,step_vec_next_update = self.find_next_step_data(self.current_step_data)
+
+        self.step_next_vec = self.update_data(self.data_next,self.step_next_vec,
+                             data_next_update,step_vec_next_update)
+
+        self.delta_t  = self.step_next_vec[0:len(self.id_vec)] - self.step_vec
 
     def get_data_by_step_id(self, stepid,h5file=None):
 
@@ -216,9 +235,87 @@ class H5nb6xxSnapshot(object):
             #TODO: This must be fixed. Calculate the right potential for each member
             bprim["POT"] = Bstep["POT"] 
             bsec["POT"] = Bstep["POT"] 
-            self.append_data(data_dict,bprim)
-            self.append_data(data_dict,bsec)
+            try:
+                self.check_duplicated(bprim["NAM"],"bprim")
+                self.check_duplicated(bsec["NAM"],"bsec")
+                self.check_duplicated(numpy.concatenate((bsec["NAM"],bprim["NAM"])),"bcom")
+                self.append_data(data_dict,bprim)
+                self.append_data(data_dict,bsec)
+            except AssertionError:
+                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+                print("WARNING: skipping binares on step %f due to duplicated binary"  
+                      " member."%Step.attrs["Time"])
+
+        if "Mergers" in Step: 
+            raise NotImplemented("Megers not implemented yet")
+
+        
+        self.sort_data(data_dict)
+        self.check_duplicated(data_dict["NAM"],"combined")
+
         return data_dict,Step.attrs["Time"]
+
+    def check_duplicated(self,ids,label=None):
+        label = "" if label is None else label
+        if len(ids) > len(set(ids)):
+            raise AssertionError("Duplicated in ids: %s"%label)
+
+    def update_data(self,data,step,data_new,step_new):
+        data0 = data.copy()
+        id_vec = data0["NAM"]
+        new_ids = data_new["NAM"] 
+        self.check_duplicated(new_ids)
+        if len(id_vec) == 0:
+            self.append_data(data,data_new)
+            return step_new
+
+        #use with id_vec or data[key]
+        ids_not_stored = numpy.isin(id_vec,new_ids,invert=True)
+        not_stored_order = numpy.argsort(id_vec[ids_not_stored] )
+        # use with ids_in_step or data_new[key]
+        ids_to_update =  numpy.isin(new_ids,id_vec)
+        to_update_order = numpy.argsort(new_ids[ids_to_update] )
+
+        ids_to_add = numpy.invert(numpy.isin(new_ids,id_vec) )
+        #to_add_order = numpy.argsort(ids_in_step[ids_to_add] )
+
+        n1 = numpy.sum(ids_not_stored)
+        n2 = numpy.sum(ids_to_update)
+        n3 = numpy.sum(ids_to_add)
+        
+        try:
+            assert  n1+n2 == len(id_vec)
+        except AssertionError:
+            print(numpy.isin(id_vec,new_ids).sum(),len(id_vec),len(new_ids))
+            print( numpy.isin(new_ids,id_vec ).sum() )
+            print(len(set(new_ids)),"set")
+            print(len(id_vec))
+            print(len(new_ids))
+            print(n1,n2,n3)
+            print(self.data[ids_not_stored])
+            print(self.data[ids_to_update])
+        self.clear_data(data)
+        #not stored first:
+        self.append_data(data,data0,ids_not_stored,not_stored_order)
+        #stored, need update
+        self.append_data(data,data_new,ids_to_update,to_update_order)
+        #new stars
+        self.append_data(data,data_new,ids_to_add)
+
+        step = numpy.concatenate([ step[ids_not_stored][not_stored_order],
+                                   step_new[ids_to_update][to_update_order],
+                                   step_new[ids_to_add]] ) 
+        #keep common data sorted
+        order = numpy.concatenate([
+            numpy.argsort( data["NAM"][:n1+n2] ),
+            n1+n2 + numpy.argsort( data["NAM"][n1+n2:] ) 
+            ])
+
+        self.sort_data(data,order = order  ) 
+        step = step[order]
+
+        return step
+
 
     def load_prev_step_data(self):
         """
@@ -233,47 +330,55 @@ class H5nb6xxSnapshot(object):
             Nsteps = len(self.h5part_file) 
             step_ids = range(Nsteps)
             for step_id in step_ids:
-                id_vec = self.data["NAM"]
                 data_new,tstep = self.get_data_by_step_id(step_id)
-                self.current_time = tstep
+                step_vec_new = numpy.ones(len(data_new["NAM"]) )*tstep
+                # print(self.data["NAM"])
+                self.step_vec = self.update_data(self.data,self.step_vec,data_new,step_vec_new)
+                # print(self.data["NAM"])
+                # print
                 print("Scanning file: %s - Time: %.3f          "%(
                     filename,tstep   ),end="\r" )
-                ids_in_step = data_new["NAM"] 
-                if len(id_vec) == 0:
-                    self.data = data_new.copy()
-                    self.step_vec = tstep*numpy.ones_like(ids_in_step,dtype=numpy.float32)
-                    if tstep + self.step_dt >= goal_time :
-                        done = True
-                        break
-                    continue
+                # print("advanced")
+                # id_vec = self.data["NAM"]
+                # self.current_time = tstep
+                # print("Scanning file: %s - Time: %.3f          "%(
+                    # filename,tstep   ),end="\r" )
+                # ids_in_step = data_new["NAM"] 
+                # if len(id_vec) == 0:
+                    # self.data = data_new.copy()
+                    # self.step_vec = tstep*numpy.ones_like(ids_in_step,dtype=numpy.float32)
+                    # if tstep + self.step_dt >= goal_time :
+                        # done = True
+                        # break
+                    # continue
 
-                #use with id_vec or data[key]
-                ids_not_stored = numpy.isin(id_vec,ids_in_step,invert=True)
-                not_stored_order = numpy.argsort(id_vec[ids_not_stored] )
-                # use with ids_in_step or data_new[key]
-                ids_to_update =  numpy.isin(ids_in_step,id_vec)
-                to_update_order = numpy.argsort(ids_in_step[ids_to_update] )
+                # #use with id_vec or data[key]
+                # ids_not_stored = numpy.isin(id_vec,ids_in_step,invert=True)
+                # not_stored_order = numpy.argsort(id_vec[ids_not_stored] )
+                # # use with ids_in_step or data_new[key]
+                # ids_to_update =  numpy.isin(ids_in_step,id_vec)
+                # to_update_order = numpy.argsort(ids_in_step[ids_to_update] )
 
-                ids_to_add = numpy.invert(numpy.isin(ids_in_step,id_vec) )
-                #to_add_order = numpy.argsort(ids_in_step[ids_to_add] )
+                # ids_to_add = numpy.invert(numpy.isin(ids_in_step,id_vec) )
+                # #to_add_order = numpy.argsort(ids_in_step[ids_to_add] )
 
-                n1 = numpy.sum(ids_not_stored)
-                n2 = numpy.sum(ids_to_update)
+                # n1 = numpy.sum(ids_not_stored)
+                # n2 = numpy.sum(ids_to_update)
                 
-                assert  n1+n2 == len(id_vec)
-                data = self.__emptyData.copy()
-                #not stored first:
-                self.append_data(data,self.data,ids_not_stored,not_stored_order)
-                #stored, need update
-                self.append_data(data,data_new,ids_to_update,to_update_order)
-                #new stars
-                self.append_data(data,data_new,ids_to_add)
-                self.data = data
+                # assert  n1+n2 == len(id_vec)
+                # data = self.__emptyData.copy()
+                # #not stored first:
+                # self.append_data(data,self.data,ids_not_stored,not_stored_order)
+                # #stored, need update
+                # self.append_data(data,data_new,ids_to_update,to_update_order)
+                # #new stars
+                # self.append_data(data,data_new,ids_to_add)
+                # self.data = data
 
-                new_step_vec = numpy.zeros_like(self.data["NAM"],dtype=numpy.float32)
-                new_step_vec[0:n1]= self.step_vec[ids_not_stored][not_stored_order]
-                new_step_vec[n1:] = tstep
-                self.step_vec = new_step_vec
+                # new_step_vec = numpy.zeros_like(self.data["NAM"],dtype=numpy.float32)
+                # new_step_vec[0:n1]= self.step_vec[ids_not_stored][not_stored_order]
+                # new_step_vec[n1:] = tstep
+                # self.step_vec = new_step_vec
 
                 if tstep + self.step_dt >= goal_time :
                     done = True
@@ -281,18 +386,26 @@ class H5nb6xxSnapshot(object):
             if done :
                 break
 
-        id_vec = self.data["NAM"]
-        order = numpy.argsort(id_vec)
-        #self.data = self.__emptyData.copy()
-        for key in self.data : 
-            self.data[key] = self.data[key][order]
-        self.step_vec = self.step_vec[order]
-        self.id_vec = self.data["NAM"]
+        # id_vec = self.data["NAM"]
+        # order = numpy.argsort(id_vec)
+        # #self.data = self.__emptyData.copy()
+        # for key in self.data : 
+            # self.data[key] = self.data[key][order]
+        # self.step_vec = self.step_vec[order]
+        # self.id_vec = self.data["NAM"]
 
     def load_next_step_data(self):
-        id_vec = self.id_vec
+        found_data,found_tstep = self.find_next_step_data(self.data)
+        self.data_next = found_data
+        self.step_next_vec = found_tstep
+        self.id_vec_next = found_data["NAM"]
+        self.id_vec = self.data["NAM"]
+        self.delta_t  = self.step_next_vec[0:len(self.id_vec)] - self.step_vec
+
+    def find_next_step_data(self,data):
+        id_vec = data["NAM"]
         snapid0 = self.snapshot_id
-        stepid0 = self.step_id +1
+        stepid0 = self.step_id + 1
         found_ids = numpy.array([])
         found_tstep = numpy.array([])
         found_data = self.__emptyData.copy() 
@@ -308,6 +421,7 @@ class H5nb6xxSnapshot(object):
             nsteps = len(h5file) 
             for istep in range(stepid0,nsteps):
                 idata,tstep = self.get_data_by_step_id(istep,h5file)
+                self.check_duplicated(idata["NAM"],"idata")
                 #Step =  h5file["Step#%d"%istep]
                 #tstep = Step.attrs["Time"]
                 sids = idata["NAM"]
@@ -316,17 +430,34 @@ class H5nb6xxSnapshot(object):
                 already_found = numpy.isin(sids,found_ids) 
                 unknown = numpy.isin(sids,id_vec,invert=True)
                 # just found = NOT already_found AND NOT unknown
-                just_found  =  numpy.invert(already_found) * numpy.invert(unknown)
-                for group in [ just_found, unknown ]: 
+                #just_found  =  numpy.invert(already_found) * numpy.invert(unknown)
+                just_found = numpy.isin(sids,found_ids,invert=True)
+
+                #for group in [ just_found, unknown ]: 
+                for group in [ just_found]: 
                     order = numpy.argsort(sids[group])
                     self.append_data(found_data,idata,group,order)
                     found_tstep = numpy.concatenate([
                             found_tstep,
                             numpy.ones_like(sids[group])*tstep
                             ])
+                found_ids = found_data["NAM"]
+                try:
+                    self.check_duplicated(found_data["NAM"],"found_data")
+                    self.check_duplicated(found_ids,"found ids")
+                except AssertionError :
+                    print(idata["NAM"][just_found]  )
+                    print(idata["NAM"][unknown]  )
+                    print(numpy.isin(idata["NAM"][just_found],
+                          idata["NAM"][unknown]  ).sum() )
+                    print(numpy.isin(idata["NAM"][unknown],
+                          idata["NAM"][just_found]  ).sum() )
+                    raise
+
+
                 
-                found_ids = numpy.concatenate([found_ids,sids[just_found]
-                    ] ).astype(int)
+                # found_ids = numpy.concatenate([found_ids,sids[just_found]
+                    # ] ).astype(int)
                 print(" Found: %i/%i"%(
                     numpy.sum(numpy.isin(id_vec,found_ids,invert=False)),
                     len(id_vec)
@@ -344,9 +475,11 @@ class H5nb6xxSnapshot(object):
         #finally make sure the firts N common ids are in the same order
         # id_vec is assumed to be already sorted 
         # TODO: Remove following assert once code is tested
+        #print(id_vec)
         # Assert that the id_vec is sorted
         assert numpy.array_equal(numpy.argsort(id_vec),numpy.arange(len(id_vec)))
         found = numpy.isin(found_data["NAM"],id_vec) 
+        self.check_duplicated(found_data["NAM"],"found data after loop")
         new = numpy.invert(found)
         ifound = numpy.argsort(found_data["NAM"][found] ) 
         inew = numpy.argsort(found_data["NAM"][new] ) 
@@ -362,6 +495,7 @@ class H5nb6xxSnapshot(object):
         found_tstep = numpy.concatenate([found_tstep[found][ifound],
                                                 found_tstep[new][inew]
                                                 ])
+        return data,found_tstep
         self.data_next = found_data
         self.step_next_vec = found_tstep
         self.id_vec_next = found_data["NAM"]
@@ -369,8 +503,14 @@ class H5nb6xxSnapshot(object):
         return 0
 
     def append_data(self,data,data_new,mask=None,order=None):
-        mask = range(len(data_new["NAM"])) if mask is None else mask
-        order = range(len(data_new["NAM"])) if order is None else order
+        mask = numpy.ones(len(data_new["NAM"]),dtype=bool) if mask is None else mask
+        order = range(mask.sum()) if order is None else order
+
+        if numpy.invert(mask).all() : #if all are False
+           return
+        if mask.sum() != len(order):
+            raise IndexError("mask must contain same number of elements than order")
+
         for key in self.dataset_list : 
             key_dtype = data_new[key].dtype
             if key in data_new: 
@@ -380,7 +520,26 @@ class H5nb6xxSnapshot(object):
                                 ]).astype(key_dtype)
         return
 
-    def interpolate(self, to_time):
+    def clear_data(self,data):
+        for key in self.dataset_list : 
+            key_dtype = data[key].dtype
+            if key in data: 
+                data[key] = numpy.array([]).astype(key_dtype)
+
+    def sort_data(self,data,order=None):
+        """ sort the data. If no ordered indexes privided will sort by NAM"""
+        #order = range(len(data_new["NAM"])) if order is None else order
+        if order is None:
+            order = numpy.argsort(data["NAM"])
+        for key in self.dataset_list : 
+            if key in data: 
+                data[key] = data[key][order]
+        return
+
+
+
+    def interpolate(self, to_time=None):
+        to_time = self.current_time if to_time is None else to_time
         #if self.flag_interp is True:
         if True:
             # dt = to_time - self.dt_vec
@@ -389,7 +548,6 @@ class H5nb6xxSnapshot(object):
             #if dt < 0:
             #    dt = 0
             dt[dt<0] = 0
-            
 
             dataset_interp = ['X1', 'X2', 'X3']
             vel = ['V1', 'V2', 'V3']
@@ -453,7 +611,13 @@ class H5nb6xxSnapshot(object):
             self.set_current_snapshot(self.snapshot_id)
             self.step_id = 0
         self.load_current_step_data()
-        self.interpolate(self.current_time)
+        #self.interpolate()
+        #X = self.data_interp["X1"].mean()
+        #print("Xmean",X)
+        #For performance, only interpoate when nessesary
+    
+    def synchronize_particles(self):
+        self.interpolate()
 
     def close(self):
         if self.h5part_file is None:
