@@ -131,6 +131,7 @@ def get_binaries_from_files(hardfile,widefile):
 
 class Snapshot(object):
     """
+    WARNING: This description is outdated
     An object containing the information of a snapshot of Nbody6.
     Contains :
       self.stars           : Datamodel.Particles object conatining the stellar data.
@@ -147,6 +148,7 @@ class Snapshot(object):
       self.to_center(center): Move stars to the specified center. If not specified, use the center of density calculated by Nbody6 
       self.reorder(isort)   : Sort stars according to the 'isort' list (e.g. result of numpy.argsort(). If nothing specified, sort by name.
     """
+    # TODO: Update Snapshot class documentation
 
     def __init__(self,snapshotfile,inputfile,singlefile=False,snapshot=1) :
         self._snapshotfile = snapshotfile
@@ -487,8 +489,9 @@ class Snapshot(object):
 
         return result
 
-    def resolve_set(self, unresolved_set ):
+    def resolve_set_old(self, unresolved_set ):
         """ 
+        Old version: Worked and tested but slow
         Resolve binaries from unresolved_set, based on names.
         unresolved_set must be a set of stars taken from the same snapshot
         object containing this function.
@@ -500,6 +503,24 @@ class Snapshot(object):
         iprim = where(cm_name)
         ising = where(unresolved_set[ (unresolved_set.name <= self.n) &
                                        (unresolved_set.name > 0) ].name)
+        iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
+                                   ising])
+        return self.stars[iall]
+
+    def resolve_set(self, unresolved_set ):
+        """ 
+        New version: under testing. Should be faster.
+        Resolve binaries from unresolved_set, based on names.
+        unresolved_set must be a set of stars taken from the same snapshot
+        object containing this function.
+        """
+        primary_names = (unresolved_set.name - self.n)[unresolved_set.name > self.n]
+        singles_names = unresolved_set.name[unresolved_set.name <= self.n] 
+
+        main_indexes = numpy.arange(len(self.stars))
+        iprim = main_indexes[numpy.isin(self.stars.name,primary_names)]
+        ising =  main_indexes[ numpy.isin(self.stars.name,singles_names) ]
+
         iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
                                    ising])
         return self.stars[iall]
@@ -766,11 +787,10 @@ class Particles(Methods):
             raise ValueError("Particles center must have length 3")
 
     def copy(self):
-        outputdict = dict()
-        for key  in self.__data.keys() :
-            outputdict[key] = self.__data[key].copy()
+        outputdict = self.__data_keys.copy()
+        # for key  in self.__data.keys() :
+            # outputdict[key] = self.__data[key].copy()
         return Particles(outputdict,center=self.center,physical=self.physical)
-
 
     def __sanity_check(self):
         l=[]
@@ -826,13 +846,13 @@ class Particles(Methods):
         if particle_attribute :
             self.__data[key] = value
 
-
     def __len__(self):
         return self.__n
 
     def __str__(self):
-        #TODO Format this properly
+        #TODO Format string representation of Particle Class
         return str(self.__data)
+
 
     def available_attributes(self):
         return list(self.__data.keys() )
