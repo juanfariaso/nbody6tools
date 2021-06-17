@@ -216,17 +216,27 @@ class H5nb6xxSnapshot(object):
                 StepData = Step[data_key][()]
                 data_dict[data_key] = StepData
         if "Binaries" in Step:
+            AUtoPC = 4.8481368111333442e-06 
             Bstep = Step["Binaries"]
             bprim = dict()
             bsec = dict()
             Mcm = Bstep["M1"][()] + Bstep["M2"][()]
             for k in [1,2,3]:
-                bprim["X%i" % k] = (Bstep["XC%i" % k][()] +
-                                    Bstep["M2"][()]/Mcm*Bstep["XR%i" % k][()] )
-                bsec["X%i"%k] = bprim["X%i"%k][()] + Bstep["XR%i"%k][()]
-                bprim["V%i"%k] = (Bstep["VC%i"%k][()] 
-                        + Bstep["M2"][()]/Mcm*Bstep["VR%i"%k][()] )
-                bsec["V%i"%k] = bprim["V%i"%k][()] + Bstep["VR%i"%k][()]
+                # bprim["X%i" % k] = (
+                    # Bstep["XC%i" % k][()] -
+                    # Bstep["M2"][()]/Mcm*Bstep["XR%i" % k][()]*AUtoPC
+                    # )
+                bprim["X%i" % k] = (
+                    Bstep["XC%i" % k][()] +
+                    #Bstep["XR%i" % k][()]*AUtoPC
+                    Bstep["M2"][()]/Mcm*Bstep["XR%i" % k][()]*AUtoPC
+                    )
+                bsec["X%i"%k] = bprim["X%i"%k][()] - Bstep["XR%i"%k][()]*AUtoPC
+                bprim["V%i"%k] = (
+                    Bstep["VC%i"%k][()] 
+                    + Bstep["M2"][()]/Mcm*Bstep["VR%i"%k][()]
+                    )
+                bsec["V%i"%k] = bprim["V%i"%k][()] - Bstep["VR%i"%k][()]
 
             for k in ["KW","L","M","MC","NAM","RC","RS","TE" ]:
                 bprim[k] = Bstep["%s1"%k ][()]
