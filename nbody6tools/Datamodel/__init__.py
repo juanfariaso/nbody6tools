@@ -507,12 +507,38 @@ class Snapshot(object):
                                    ising])
         return self.stars[iall]
 
-    def resolve_set(self, unresolved_set ):
+    def resolve_set(self, unresolved_set, split_set=False ):
         """ 
         New version: under testing. Should be faster.
         Resolve binaries from unresolved_set, based on names.
         unresolved_set must be a set of stars taken from the same snapshot
         object containing this function.
+
+        Input:
+        -----
+        unresolved_set : Particles object
+                         Must be a Particle object contained in this Snapshot.
+
+        split_set: bool (default:False)
+                   if True returns tuple of Particles with single, primary and 
+                   secondary set of stars
+
+        Output:
+        ------
+        resolved_particles  : if split_set == False
+        single,primary,secondary  : Tuple of Particles set if split_set==True
+                                    primary and secondary order is equivalent.
+        
+        Example:
+        -------
+        >> sn = Snapshot(folder,input)
+        >> single,primary,secondary = sn.resolve_set(sn.stars,split_set=True)
+        >> bin_sep = numpy.sqrt((primary.x - secondary.x)**2 \
+                             +  (primary.y - secondary.y)**2 \
+                             +  (primary.z - secondary.z)**2
+                               )
+        Note: if resolved_particles is already resolved, primary and secondary
+              sets will result on empty Particles objects.
         """
         primary_names = (unresolved_set.name - self.n)[unresolved_set.name > self.n]
         singles_names = unresolved_set.name[unresolved_set.name <= self.n] 
@@ -521,10 +547,12 @@ class Snapshot(object):
         iprim = main_indexes[numpy.isin(self.stars.name,primary_names)]
         ising =  main_indexes[ numpy.isin(self.stars.name,singles_names) ]
 
-        iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
-                                   ising])
-        return self.stars[iall]
-
+        if not split_set:
+            iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
+                                       ising])
+            return self.stars[iall]
+        else:
+            return self.stars[ising], self.stars[iprim], self.stars[iprim+1]
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
@@ -548,15 +576,10 @@ class Snapshot(object):
         """
         if center is None:
             center = self.parameters["rdens"]
-        #self.__allstars.x -= center[0]
-        #self.__allstars.y -= center[1]
-        #self.__allstars.z -= center[2]
         self.__allstars.to_center(center)
         self.parameters["rdens"][0] -= center[0]
         self.parameters["rdens"][1] -= center[1]
         self.parameters["rdens"][2] -= center[2]
-        #self.__stars.__center = center
-        #self.__allstars.center = self.parameters["rdens"]
 
     def reorder(self,isort=None):
         """ Sort stars according to the isort list (e.g. result of numpy.argsort(). If nothing specified, sort by name. """
