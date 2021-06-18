@@ -3,8 +3,6 @@ import numpy
 import os
 from nbody6tools import Reader
 
-#TODO:  remove this todo. hook test
-
 class H5nb6xxSnapshot(object):
     """ 
     Implement a reader for the Block Timestep Storage introduced by Cai et al.
