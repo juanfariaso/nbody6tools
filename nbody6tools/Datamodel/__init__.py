@@ -7,7 +7,7 @@ import glob
 from scipy.io import FortranFile
 import numpy
 
-from ._ParticleMethods  import Methods
+from ._ParticleMethods import Methods
 
 def parse_inputfile(inputfilename):
     """
