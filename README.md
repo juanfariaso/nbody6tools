@@ -66,15 +66,20 @@ Here a list of available subset of particles:
 
 #### Resolved sets
 Each star in these sets represents ONE star:
+
 `snapshot.stars`  :  All stars in the set
+
 `snapshot.bound_stars`  : Stars bound 
+
 `snapshot.unbound_stars` : Stars unbound
 
 #### Unresolved sets:
 Some stars represent a binary system. These sets are usefull to calculate global quantities:
 
 `snapshot.unresolved_stars` : All stars in the set unresolved
+
 `snapshot.bound_stars_unresolved` : Stars bound unresolved
+
 `snapshot.unbound_stars_unresolved` : Stars unbound unresolved
 
 ##### Binary components:
@@ -84,6 +89,7 @@ You can either get the full set together with resolved stars with:
 `resolved_set = snapshot.resolve_set(snapshot.unresolved_stars)`
 
 Or obtain three separate set of stars with:
+
 `singles,primaries,secondaries = snapshot.resolve_set(snapshot.unresolved_stars,split_set=True)`
 
 `primaries` and `secondaries` have data in the same order for easy manipulation.
