@@ -39,7 +39,6 @@ Transforms the internal values from Nbody units to astrophysical units: km/s, pa
 You can come back to nbody if you like with the `.to_nbody()` function.
 
 Then the particles are obtained with:
-
 `stars = snapshot.stars`
 
 `stars` is a Particles object defined in `Datamodel`. It have several useful functions, but basically give you access to the stellar quantities like for instance:
@@ -60,18 +59,37 @@ vd = stars.velocity_dispersion() #
 ```
 For other functions check the Particles object definition, but for extra available functions check the file `Datamodel/_ParticleMethods` 
 
-You can also select other subset of stars for instance:
-```
-bound_stars = snapshot.bound_stars
-unbound_stars = snapshot.unbound_stars
-```
-if you have binaries, you most likely want them unresolved to calculate global quantities, like velocity_dispersion, todo so:
 
-```
-bound_stars = snapshot.bound_stars_unresolved
-unbound_stars = snapshot.unbound_stars_unresolved
-```
-above is also quicker since resolving the binaries may take some time.
+## Available set of stars:
+Depending if you have binaries you may want them resolved or bound or both. 
+Here a list of available subset of particles:
+
+#### Resolved sets
+Each star in these sets represents ONE star:
+`snapshot.stars`  :  All stars in the set
+`snapshot.bound_stars`  : Stars bound 
+`snapshot.unbound_stars` : Stars unbound
+
+#### Unresolved sets:
+Some stars represent a binary system. These sets are usefull to calculate global quantities:
+
+`snapshot.unresolved_stars` : All stars in the set unresolved
+`snapshot.bound_stars_unresolved` : Stars bound unresolved
+`snapshot.unbound_stars_unresolved` : Stars unbound unresolved
+
+##### Binary components:
+You may want to distinguish binaries and singles from the above unresolved groups.
+You can either get the full set together with resolved stars with:
+
+`resolved_set = snapshot.resolve_set(snapshot.unresolved_stars)`
+
+Or obtain three separate set of stars with:
+`singles,primaries,secondaries = snapshot.resolve_set(snapshot.unresolved_stars,split_set=True)`
+
+`primaries` and `secondaries` have data in the same order for easy manipulation.
+
+
+## Available scripts
 
 Outside a python script you also should have access to the standalone programs
 `nbtools` and  `nbt-movie`.
