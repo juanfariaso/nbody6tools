@@ -388,7 +388,7 @@ class Snapshot(object):
           self.__recordnumber += 1
       physical = self.physical
       self.__structure(record)
-      self.__record = record
+      #self.__record = record
       if physical:
           self.to_physical()
 
@@ -582,6 +582,7 @@ class Snapshot(object):
         self.parameters["rdens"][2] -= center[2]
 
     def reorder(self,isort=None):
+#TODO (check): Snaphsot.reorder should not be needed anymore 
         """ Sort stars according to the isort list (e.g. result of numpy.argsort(). If nothing specified, sort by name. """
         if isort is None:
            isort = numpy.argsort(self.stars["name"])
@@ -590,6 +591,7 @@ class Snapshot(object):
            self.stars[key] = self.stars[key][isort]
 
     def unresolve_all(self):
+#TODO : Check Snapshot.unrsolve_all is still necessary
         """ 
         Unresolve all binaries using data from bwdat.19_* and bdat.9_*. 
         Only possible if KZ(18) >= 2. 
@@ -610,22 +612,15 @@ class Snapshot(object):
         secondaries = numpy.concatenate((hard["secondary"],wide["secondary"] ))
         pairs = numpy.array(list( zip(primaries,secondaries)) ) 
         higher_orders = numpy.where( (pairs > self.n) | ( pairs <= 0) )  
-        #print(len(pairs),"len pairs")
         if len(pairs) == 0:
             return self.stars
-        #print("ntot",self.n)
-        #print("higher_orders",higher_orders)#sorted(higher_orders[0],reverse=True))
-        #print("higher",sorted( set(higher_orders[0]),reverse=True) )
-        #print("hpairs",numpy.array(pairs) [higher_orders[0]] )
-        #for i in sorted(set(higher_orders[0]),reverse=True)  :
-        #    pairs.pop(i)
         pairs = numpy.delete(pairs,higher_orders[0] , axis=0 )
         primaries,secondaries = numpy.array(pairs).T
 
-        #extract binaries in multiples and add to singles for now #TODO handle multiples into one single particle
+        #extract binaries in multiples and add to singles for now 
 
         #position of singles, primaries and secondaries
-        #TODO: handle multiple systems
+#TODO: handle multiple systems
         i_singles = numpy.invert(numpy.isin(self.stars.name,allmembers))
         singles = self.stars[i_singles]
 

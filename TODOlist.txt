@@ -14,14 +14,15 @@ nbody6tools/Datamodel/__init__.py:17:    # TODO : this function should be a well
 nbody6tools/Datamodel/__init__.py:151:    # TODO: Update Snapshot class documentation
 nbody6tools/Datamodel/__init__.py:315:        TODO: Update and add other backgrounds
 nbody6tools/Datamodel/__init__.py:478:            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
-nbody6tools/Datamodel/__init__.py:625:        #extract binaries in multiples and add to singles for now #TODO handle multiples into one single particle
-nbody6tools/Datamodel/__init__.py:628:        #TODO: handle multiple systems
-nbody6tools/Datamodel/__init__.py:638:        #TODO:  improve this, must be a better way
-nbody6tools/Datamodel/__init__.py:653:        #TODO: add check that pairs are correct
-nbody6tools/Datamodel/__init__.py:655:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
-nbody6tools/Datamodel/__init__.py:876:        #TODO Format string representation of Particle Class
+nbody6tools/Datamodel/__init__.py:585:#TODO (check): Snaphsot.reorder should not be needed anymore 
+nbody6tools/Datamodel/__init__.py:594:#TODO : Check Snapshot.unrsolve_all is still necessary
+nbody6tools/Datamodel/__init__.py:623:#TODO: handle multiple systems
+nbody6tools/Datamodel/__init__.py:633:        #TODO:  improve this, must be a better way
+nbody6tools/Datamodel/__init__.py:648:        #TODO: add check that pairs are correct
+nbody6tools/Datamodel/__init__.py:650:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
+nbody6tools/Datamodel/__init__.py:871:        #TODO Format string representation of Particle Class
 nbody6tools/scripts/nbt-movie:107:    #TODO make this line optional
 nbody6tools/scripts/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
 nbody6tools/ext/src/Qpar.f90:3:      ! TODO: Find out and put the proper credits here.
-nbody6tools/Reader.py:96:    #TODO raise error when needed kz option is not set and check how to deal
+nbody6tools/Reader.py:95:    #TODO raise error when needed kz option is not set and check how to deal
 nbody6tools/Plots.py:44:            print("snapshot: ", num, sn.time) #TODO: Put nice progress info

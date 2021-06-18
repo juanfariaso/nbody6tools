@@ -76,7 +76,6 @@ def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile
        
         #l=[x.replace("%s%s"%(folder,snapshotfile),"") for x in glob.glob(folder+"%s*"%snapshotfile ) ]
         l=[x.split("_")[-1] for x in glob.glob(folder+"%s*"%snapshotfile ) ]
-        print(l)
         l.sort(key=float)
         if len(l) == 0:
             raise ValueError("No snapshots in this folder.")
