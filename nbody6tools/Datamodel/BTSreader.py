@@ -3,6 +3,8 @@ import numpy
 import os
 from nbody6tools import Reader
 
+#TODO:  remove this todo. hook test
+
 class H5nb6xxSnapshot(object):
     """ 
     Implement a reader for the Block Timestep Storage introduced by Cai et al.
@@ -99,7 +101,7 @@ class H5nb6xxSnapshot(object):
         self.snaphot_id = isnap
         self.close()
 
-        h5fn = h5py.File(self.snapshotfiles[isnap],"r") 
+        h5fn = self.snapshotfiles[isnap]
         if os.path.isfile(h5fn):
             self.h5part_file = h5py.File(h5fn, 'r')
         else:
