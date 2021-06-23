@@ -2,12 +2,39 @@ build/scripts.linux-x86_64-2.7/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-2.7/nbt-movie:295:    cdens = rho.sum(axis=2).T #TODO: Able to choose projection
 build/scripts.linux-x86_64-3.6/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-3.6/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
-nbody6tools/Datamodel/BTSreader.py:113:# TODO: Not sure self.id_vec is necessary. Remove
-nbody6tools/Datamodel/BTSreader.py:196:            #TODO: This must be fixed. Calculate the right potential for each member
-nbody6tools/Datamodel/BTSreader.py:206:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
-nbody6tools/Datamodel/BTSreader.py:211:# TODO: Implement mergers in BTSreader
-nbody6tools/Datamodel/BTSreader.py:355:# TODO: Add debug mode to avoid unnessesary sorting
-nbody6tools/Datamodel/BTSreader.py:406:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreaderBuffered.py:52:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/BTSreaderBuffered.py:61:                #TODO: BTS: Add duplicated check in Data object
+nbody6tools/Datamodel/BTSreaderBuffered.py:63:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/BTSreaderBuffered.py:68:    # TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/BTSreaderBuffered.py:231:# TODO: Not sure self.id_vec is necessary. Remove
+nbody6tools/Datamodel/BTSreaderBuffered.py:238:        ##tryied this for buffer but doesnt work. TODO NOW!: Remove
+nbody6tools/Datamodel/BTSreaderBuffered.py:336:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/BTSreaderBuffered.py:346:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/BTSreaderBuffered.py:351:# TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/BTSreaderBuffered.py:481:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreaderBuffered.py:713:# TODO: Add debug mode to avoid unnessesary sorting
+nbody6tools/Datamodel/2:129:# TODO: Not sure self.id_vec is necessary. Remove
+nbody6tools/Datamodel/2:136:        ##tryied this for buffer but doesnt work. TODO NOW!: Remove
+nbody6tools/Datamodel/2:232:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/2:242:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/2:247:# TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/2:433:# TODO: Add debug mode to avoid unnessesary sorting
+nbody6tools/Datamodel/2:473:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/2:628:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/2:638:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/2:643:    # TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/2:740:# TODO: Add debug mode to avoid unnessesary sorting
+nbody6tools/Datamodel/BTSreader.py:50:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/BTSreader.py:59:                #TODO: BTS: Add duplicated check in Data object
+nbody6tools/Datamodel/BTSreader.py:61:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/BTSreader.py:66:    # TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/BTSreader.py:219:# TODO: Not sure self.id_vec is necessary. Remove
+nbody6tools/Datamodel/BTSreader.py:312:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/BTSreader.py:322:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/BTSreader.py:327:# TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/BTSreader.py:471:# TODO: Add debug mode to avoid unnessesary sorting
+nbody6tools/Datamodel/BTSreader.py:524:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreader.py:757:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/_ParticleMethods.py:26:        #epot = self.x*0.0 # background potential #TODO implement
 nbody6tools/Datamodel/_ParticleMethods.py:66:        TODO: Implement other external potentials, e.g. Plummer
 nbody6tools/Datamodel/__init__.py:17:    # TODO : this function should be a well defined object able to write and

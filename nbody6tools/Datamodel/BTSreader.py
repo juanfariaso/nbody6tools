@@ -2,6 +2,110 @@ import h5py
 import numpy 
 import os
 from nbody6tools import Reader
+import time
+
+class Data(object):
+    def __init__(self):
+        self.dataset_list = ['KW', 'L', 'M', 'MC', 'NAM', 'POT', 'RC', 'RS',
+            'TE', 'V1', 'V2', 'V3', 'X1', 'X2', 'X3','Time']
+        self.data = dict()
+        for dset_name in self.dataset_list:
+            self.data[dset_name] = numpy.array([])
+        self.times = numpy.array([])
+
+    def load_data_from_step(self,Step):
+        if "N_SINGLE" in Step.attrs :
+            data_dict = dict()
+            nsingle = Step.attrs["N_SINGLE"]
+            for data_key in self.dataset_list :
+                if data_key in Step :
+                    StepData = Step[data_key][()]
+                    data_dict[data_key] = StepData
+            data_dict["Time"] = numpy.full(nsingle, Step.attrs["Time"] )
+            self.data = data_dict
+        if "Binaries" in Step:
+            AUtoPC = 4.8481368111333442e-06 
+            Bstep = Step["Binaries"]
+            nbin = Bstep.attrs["N_BINARY"]
+
+            bprim = dict()
+            bsec = dict()
+            Mcm = Bstep["M1"][()] + Bstep["M2"][()]
+            for k in [1,2,3]:
+                bprim["X%i" % k] = (
+                    Bstep["XC%i" % k][()] +
+                    Bstep["M2"][()]/Mcm*Bstep["XR%i" % k][()]*AUtoPC
+                    )
+                bsec["X%i"%k] = bprim["X%i"%k][()] - Bstep["XR%i"%k][()]*AUtoPC
+                bprim["V%i"%k] = (
+                    Bstep["VC%i"%k][()] 
+                    + Bstep["M2"][()]/Mcm*Bstep["VR%i"%k][()]
+                    )
+                bsec["V%i"%k] = bprim["V%i"%k][()] - Bstep["VR%i"%k][()]
+
+            for k in ["KW","L","M","MC","NAM","RC","RS","TE" ]:
+                bprim[k] = Bstep["%s1"%k ][()]
+                bsec[k] = Bstep["%s2"%k ][()]
+
+            #TODO: This must be fixed. Calculate the right potential for each member
+            bprim["POT"] = Bstep["POT"] 
+            bsec["POT"] = Bstep["POT"] 
+            
+            bprim["Time"] = numpy.full(nbin, Step.attrs["Time"] )
+            bsec["Time"] = numpy.full(nbin, Step.attrs["Time"] )
+            try:
+                self.append_data(bprim)
+                self.append_data(bsec)
+                #TODO: BTS: Add duplicated check in Data object
+            except AssertionError:
+                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+                print("WARNING: skipping binares on step %f due to duplicated binary"  
+                      " member."%Step.attrs["Time"])
+
+        if "Mergers" in Step: 
+    # TODO: Implement mergers in BTSreader
+            raise NotImplemented("Megers not implemented yet")
+
+        self.sort_data()
+        #self.check_duplicated(data_dict["NAM"],"combined")
+        #self.data = data_dict
+
+    def append_data(self,data_new,mask=None,order=None):
+        mask = numpy.ones(len(data_new["NAM"]),dtype=bool) if mask is None else mask
+        order = range(mask.sum()) if order is None else order
+
+        if numpy.invert(mask).all() : #if all are False
+           return
+        if mask.sum() != len(order):
+            raise IndexError("mask must contain same number of elements than order")
+
+        for key in self.dataset_list : 
+            key_dtype = data_new[key].dtype
+            #print(key,data_new[key][:5])
+            if key in data_new: 
+                self.data[key] = numpy.concatenate([
+                                self.data[key],
+                                data_new[key][mask][order]   
+                                ]).astype(key_dtype)
+        return
+
+    def __len__(self):
+        return len( self.data["NAM"]  )
+
+    def sort_data(self,order=None):
+        """ sort the data. If no ordered indexes privided will sort by NAM"""
+        if order is None:
+            order = numpy.argsort(self.data["NAM"])
+        for key in self.dataset_list: 
+            if key in self.data: 
+                self.data[key] = self.data[key][order]
+        return
+
+    def clear_data(self):
+        for key in self.dataset_list : 
+            key_dtype = data[key].dtype
+            if key in data: 
+                self.data[key] = numpy.array([]).astype(key_dtype)
 
 class H5nb6xxSnapshot(object):
     """ 
@@ -51,11 +155,13 @@ class H5nb6xxSnapshot(object):
         self.snapshot_id = 0 
         self.step_id = 0
         self.h5part_file = None
+        self.skipped_steps = 0 #debug
 
         self.dataset_list = ['KW', 'L', 'M', 'MC', 'NAM', 'POT', 'RC', 'RS', 'TE', 'V1', 'V2', 'V3', 'X1', 'X2', 'X3']
         self.data = None
         self.data_next = None
         self.data_interp = None
+        self.tappend = 0 #debug
 
         self.initialize_code()
 
@@ -86,7 +192,7 @@ class H5nb6xxSnapshot(object):
         self.snapshotfiles = numpy.array(self.snapshotfiles)[iord] 
         self.Nsnap = len(self.snapshotfiles)
 
-    def __set_current_snapshot(self,isnap=None) : 
+    def _set_current_snapshot(self,isnap=None) : 
         if isnap is None:
             try:
                 isnap = numpy.argwhere( self.tstart <= self.requested_time )[-1][0] 
@@ -142,7 +248,9 @@ class H5nb6xxSnapshot(object):
         self.interpolate()
 
     def load_current_step_data(self):
+        t0 = time.time() #debug
         self.current_step_data,self.current_time = self.get_data_by_step_id(self.step_id)
+        t1 = time.time() #debug
         if (self.step_vec != self.current_time).sum() == 0 :
             self.current_step_data = self.data
             return
@@ -150,15 +258,23 @@ class H5nb6xxSnapshot(object):
         if nfound == 0 :
             return
         
+        t2 = time.time() #debug
         current_step_vec = numpy.ones(nfound)*self.current_time
         self.step_vec = self.update_data(self.data,self.step_vec,self.current_step_data,
                          current_step_vec)
         self.id_vec = self.data["NAM"]
+        t3 = time.time() #debug
 
+        t4 = time.time() #debug
         data_next_update,step_vec_next_update = self.find_next_step_data(self.current_step_data)
+        #data_next_update,step_vec_next_update = self.get_next_step_data_of_step(self.current_time)
+        t5 = time.time() #debug
 
         self.step_next_vec = self.update_data(self.data_next,self.step_next_vec,
                              data_next_update,step_vec_next_update)
+        tt= time.time() - t0
+        print("t5,t4,t3,t2,t1")
+        print((t5-t4)/tt,(t4-t3)/tt,(t3-t2)/tt,(t2-t1)/tt,(t1-t0)/tt)
 
         self.delta_t  = self.step_next_vec[0:len(self.id_vec)] - self.step_vec
 
@@ -276,7 +392,7 @@ class H5nb6xxSnapshot(object):
         goal_time = self.requested_time
         done = False
         for isnap in snaps :
-            self.__set_current_snapshot(isnap)
+            self._set_current_snapshot(isnap)
             filename = self.h5part_file.filename
             Nsteps = len(self.h5part_file) 
             step_ids = range(Nsteps)
@@ -320,22 +436,22 @@ class H5nb6xxSnapshot(object):
             nsteps = len(h5file) 
             for istep in range(stepid0,nsteps):
                 idata,tstep = self.get_data_by_step_id(istep,h5file)
-                self.check_duplicated(idata["NAM"],"idata")
+                #self.check_duplicated(idata["NAM"],"idata")
                 sids = idata["NAM"]
-                print("Scanning file: %s - Time: %.3f          "%(
-                    h5file.filename,tstep   ),end="" )
                 just_found = numpy.isin(sids,found_ids,invert=True)
+                if just_found.sum() == 0:
+                    #print( "nofound")#debug
+                    self.skipped_steps +=1 #debug
+                    continue
 
                 for group in [ just_found]: 
                     order = numpy.argsort(sids[group])
                     self.append_data(found_data,idata,group,order)
                     found_tstep = numpy.concatenate([
                             found_tstep,
-                            numpy.ones_like(sids[group])*tstep
+                            numpy.full_like(sids[group],tstep)
                             ])
                 found_ids = found_data["NAM"]
-                self.check_duplicated(found_data["NAM"],"(A) Duplicated in found_data")
-                self.check_duplicated(found_ids,"Duplicated in found ids")
 
                 print(" Found: %i/%i        "%(
                     numpy.sum(numpy.isin(id_vec,found_ids,invert=False)),
@@ -370,6 +486,7 @@ class H5nb6xxSnapshot(object):
         return data,found_tstep
 
     def append_data(self,data,data_new,mask=None,order=None):
+        t0 = time.time()#debug
         mask = numpy.ones(len(data_new["NAM"]),dtype=bool) if mask is None else mask
         order = range(mask.sum()) if order is None else order
 
@@ -385,6 +502,7 @@ class H5nb6xxSnapshot(object):
                                 data[key],
                                 data_new[key][mask][order]   
                                 ]).astype(key_dtype)
+        self.tappend += time.time() - t0
         return
 
     def clear_data(self,data):
@@ -453,7 +571,7 @@ class H5nb6xxSnapshot(object):
         self.step_id += 1 
         if self.current_time + self.step_dt > self.tend[self.snapshot_id] :
             self.snapshot_id += 1 
-            self.__set_current_snapshot(self.snapshot_id)
+            self._set_current_snapshot(self.snapshot_id)
             self.step_id = 0
         self.load_current_step_data()
     
@@ -465,3 +583,189 @@ class H5nb6xxSnapshot(object):
             return
         else :
             self.h5part_file.close()
+
+class BufferDaemon(object):
+    def __init__(self,snapshotfiles,Nsteps,Njobs=1, Nbf=1):
+        #Daemon must be self contained. Should send out just the data buffered
+        #Will assume we look forward from whatever snapshotfiles are given
+        #snapshot files is assumed to be sorted
+        self.sid = 0
+        self.snapid = 0
+        self.snapshotfiles = snapshotfiles
+        self.manager = Manager()
+        self.databuffer = self.manager.dict()
+        self.JobsStatus = self.manager.dict()
+        self.runningJobs = self.manager.Value("i",0)
+        self.Master = Process( target = self.main )
+        if type(Nsteps) is int:
+            self.Nsteps = numpy.full_like(self.snapshotfiles,Nsteps,dtype="int")
+        else:
+            self.Nsteps = Nsteps
+        self.Nbf = Nbf
+        self.Njobs = Njobs
+        self.Queue = Queue()
+        self.JobExitQueue = Queue()
+
+    @property
+    def RunningJobs(self):
+        return self.runningJobs.get()
+
+    def start(self):
+        self.Master.start()
+
+    def stop(self):
+        self.Master.terminate()
+
+    def worker(self,stepid,snapid):
+        try : 
+            tstep,data,data_next = next_step_finder(stepid,self.snapshotfiles[snapid:] )
+            self.Queue.put( (tstep,data,data_next)  )
+            self.JobExitQueue.put( (tstep,0,"") )
+        except:
+            pos = "Snapshot%d_Step%d"%(snapid,stepid)
+            err = traceback.format_exc()
+            self.JobExitQueue.put((pos,-1,err))
+        return
+
+    def collecter(self,Cdict,Queue):
+        # get() block the code here until there is something to get
+        # it expect a 3-length tuple wher first item is used as key
+        while True:
+            key,value1,value2 = Queue.get() 
+            Cdict[key] = (value1,value2)
+
+    def main(self):
+        sid = self.sid
+        snapid = self.snapid
+        #This main process can not modify class attributes except if they are 
+        # created with self.manager
+        DataCollecter = Process(target = self.collecter, 
+                            args = (self.databuffer,self.Queue),
+                            daemon=True)
+        StatusCollecter = Process(target = self.collecter, 
+                            args = (self.JobsStatus,self.JobExitQueue),
+                            daemon=True)
+        DataCollecter.start()
+        StatusCollecter.start()
+
+        Jobs = []
+        while True:
+            if len(Jobs) < self.Njobs and len(self.databuffer) < self.Nbf:
+                p =  Process(target = self.worker,
+                             args = (sid,snapid),
+                             daemon=True)
+                p.start()
+                Jobs.append(p) #do not work. It dont update 
+
+                sid += 1
+                if sid >= self.Nsteps[snapid]:
+                    snapid +=1
+                    sid = 0
+            self.runningJobs.set(len(Jobs))
+            for job in Jobs.copy():
+                if not job.is_alive() :
+                    #Do i need to do something else to free resources?
+                    Jobs.remove(job)
+
+            for key in self.JobsStatus.copy():
+                status,err = self.JobsStatus.pop(key)
+                if status < 0:
+                    raise Exception("\n"+err)
+
+    def get_data(self,tstep):
+        while True:
+            if self.RunningJobs == 0 and len(self.databuffer) >= self.Nbf :
+                self.stop()
+                raise KeyError("Timestep %g not in list"%tstep)
+            if tstep in self.databuffer:
+                result = self.databuffer.pop(tstep)
+                return result
+
+def next_step_finder(stepid,snapshotfiles,verbose=False):
+    """
+    Helper for H5nb6xxSnapshot object.
+    Read the current stored data in stepid and their next occurrence,
+    collecting any new stars finded after.
+    This function is intended to run isolated and being used with multiple 
+    processes.
+
+    Input
+    -----
+    snapshotfiles : sorted list of hdf5 files 
+    stepid : stepid of first item of snapshot files.
+    
+    Output
+    -----
+    data0 : data at stepid on first snapshot
+    data  : data containing next occurence of particles stored in data.
+            data.data[ len(data0)::] contains new particles found on the way
+    """
+    
+    found_ids = numpy.array([])
+    found_data = Data() 
+    data = Data()
+    snapid0 = 0
+
+    h5file = h5py.File(open(snapshotfiles[snapid0],"rb"),"r")
+    data.load_data_from_step(h5file["Step#%d"%stepid ]) 
+    id_vec = data.data["NAM"]
+    tstep = h5file["Step#%d"%stepid ].attrs["Time"]
+
+    stepid0 = stepid + 1
+    done=False
+    for snapid in range(snapid0,len(snapshotfiles)) :
+        if h5file is not None:
+            h5file.close()
+        #print("opening",snapshotfiles[snapid])
+        h5file = h5py.File(open(snapshotfiles[snapid],"rb"),"r")
+        nsteps = len(h5file)
+
+        for istep in range(stepid0,nsteps):
+            iStep = h5file["Step#%d" % istep ]
+            idata = Data()
+            idata.load_data_from_step(iStep)
+            sids = idata.data["NAM"]
+            just_found = numpy.isin(sids,found_ids,invert=True)
+            if just_found.sum() == 0:
+                continue
+
+            for group in [ just_found]: 
+                order = numpy.argsort(sids[group])
+                found_data.append_data(idata.data,group,order)
+                # found_tstep = numpy.concatenate([
+                        # found_tstep,
+                        # numpy.full_like(sids[group],tstep)
+                        # ])
+            found_ids = found_data.data["NAM"]
+
+            if verbose:
+                print(" Found: %i/%i        "%(
+                        numpy.sum(numpy.isin(id_vec,found_ids,invert=False)),
+                        len(id_vec)
+                    ),
+                    end = "\r")
+            if numpy.sum(numpy.isin(id_vec,found_ids,invert=True)) == 0:
+                done = True
+                break
+        if done:
+            #print("closing file",h5file)
+            h5file.close()
+            break
+
+    #finally make sure the firts N common ids are in the same order
+    # id_vec is assumed to be already sorted 
+# TODO: Add debug mode to avoid unnessesary sorting
+    # Assert that the id_vec is sorted
+    assert numpy.array_equal(numpy.argsort(id_vec),numpy.arange(len(id_vec)))
+    found = numpy.isin(found_data.data["NAM"],id_vec) 
+    #self.check_duplicated(found_data["NAM"],"(B) duplicated in found data")
+    new = numpy.invert(found)
+    ifound = numpy.argsort(found_data.data["NAM"][found] ) 
+    inew = numpy.argsort(found_data.data["NAM"][new] ) 
+
+    dataout = Data()
+    dataout.append_data( found_data.data,found,ifound )
+    dataout.append_data( found_data.data,new,inew )
+    # found_tstep = numpy.concatenate([found_tstep[found][ifound],
+                                            # found_tstep[new][inew]
+    return tstep,data,dataout
