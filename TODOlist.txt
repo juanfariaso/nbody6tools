@@ -2,12 +2,19 @@ build/scripts.linux-x86_64-2.7/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-2.7/nbt-movie:295:    cdens = rho.sum(axis=2).T #TODO: Able to choose projection
 build/scripts.linux-x86_64-3.6/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-3.6/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
+nbody6tools/Datamodel/BTSreaderDummy.py:54:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/BTSreaderDummy.py:63:                #TODO: BTS: Add duplicated check in Data object
+nbody6tools/Datamodel/BTSreaderDummy.py:65:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+nbody6tools/Datamodel/BTSreaderDummy.py:70:    # TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/BTSreaderDummy.py:371:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreaderDummy.py:439:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
+nbody6tools/Datamodel/BTSreaderDummy.py:622:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/BTSreader.py:53:            #TODO: This must be fixed. Calculate the right potential for each member
 nbody6tools/Datamodel/BTSreader.py:62:                #TODO: BTS: Add duplicated check in Data object
 nbody6tools/Datamodel/BTSreader.py:64:                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
 nbody6tools/Datamodel/BTSreader.py:69:    # TODO: Implement mergers in BTSreader
-nbody6tools/Datamodel/BTSreader.py:371:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
-nbody6tools/Datamodel/BTSreader.py:439:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
+nbody6tools/Datamodel/BTSreader.py:370:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreader.py:438:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
 nbody6tools/Datamodel/BTSreader.py:627:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/_ParticleMethods.py:26:        #epot = self.x*0.0 # background potential #TODO implement
 nbody6tools/Datamodel/_ParticleMethods.py:66:        TODO: Implement other external potentials, e.g. Plummer

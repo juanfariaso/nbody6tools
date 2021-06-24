@@ -159,7 +159,6 @@ class Data(object):
         assert len(value) == self.__len__()
         self.data[key] = value
 
-
 class H5nb6xxSnapshot(object):
     """ 
     Implement a reader for the Block Timestep Storage introduced by Cai et al.
@@ -592,12 +591,13 @@ def next_step_finder(stepid,snapshotfiles,verbose=False):
 
         for istep in range(stepid0,nsteps):
             iStep = h5file["Step#%d" % istep ]
+            newHere = numpy.isin(get_stored_names(iStep),found_ids,invert=True)
+            if newHere.sum() == 0:
+                continue
             idata = Data()
             idata.load_from_step(iStep)
             sids = idata.data["NAM"]
             just_found = numpy.isin(sids,found_ids,invert=True)
-            if just_found.sum() == 0:
-                continue
 
             for group in [ just_found]: 
                 order = numpy.argsort(sids[group])
@@ -640,3 +640,10 @@ def next_step_finder(stepid,snapshotfiles,verbose=False):
                                             # found_tstep[new][inew]
     return tstep,data,dataout
 
+def get_stored_names(Step):
+    names = numpy.array([])
+    if "N_SINGLE" in Step.attrs :
+        names = numpy.concatenate([names, Step["NAM"] ])
+    if "Binaries" in Step :
+        names = numpy.concatenate([names,Step["Binaries"]["NAM1"],Step["Binaries"]["NAM2"] ])
+    return names
