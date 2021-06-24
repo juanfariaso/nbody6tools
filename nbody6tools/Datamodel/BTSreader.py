@@ -56,14 +56,13 @@ class Data(object):
             
             bprim["Time"] = numpy.full(nbin, Step.attrs["Time"] )
             bsec["Time"] = numpy.full(nbin, Step.attrs["Time"] )
-            try:
+            if ( len(bprim["NAM"]) == len(set(bprim["NAM"]))  or 
+                len(bsec["NAM"]) == len(set(bsec["NAM"])) ) :
                 self.append(bprim)
                 self.append(bsec)
-                #TODO: BTS: Add duplicated check in Data object
-            except AssertionError:
-                #TODO: BTS: handle duplicated binary, ignore only the one causing it.
+            else:
                 print("WARNING: skipping binares on step %f due to duplicated binary"  
-                      " member."%Step.attrs["Time"])
+                  " member."%Step.attrs["Time"])
 
         if "Mergers" in Step: 
     # TODO: Implement mergers in BTSreader
