@@ -2,11 +2,11 @@ build/scripts.linux-x86_64-2.7/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-2.7/nbt-movie:295:    cdens = rho.sum(axis=2).T #TODO: Able to choose projection
 build/scripts.linux-x86_64-3.6/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-3.6/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
-nbody6tools/Datamodel/BTSreader.py:53:            #TODO: This must be fixed. Calculate the right potential for each member
-nbody6tools/Datamodel/BTSreader.py:68:    # TODO: Implement mergers in BTSreader
-nbody6tools/Datamodel/BTSreader.py:369:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
-nbody6tools/Datamodel/BTSreader.py:437:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
-nbody6tools/Datamodel/BTSreader.py:626:# TODO: Add debug mode to avoid unnessesary sorting
+nbody6tools/Datamodel/BTSreader.py:57:            #TODO: This must be fixed. Calculate the right potential for each member
+nbody6tools/Datamodel/BTSreader.py:80:    # TODO: Implement mergers in BTSreader
+nbody6tools/Datamodel/BTSreader.py:381:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreader.py:449:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
+nbody6tools/Datamodel/BTSreader.py:638:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/_ParticleMethods.py:26:        #epot = self.x*0.0 # background potential #TODO implement
 nbody6tools/Datamodel/_ParticleMethods.py:66:        TODO: Implement other external potentials, e.g. Plummer
 nbody6tools/Datamodel/__init__.py:17:    # TODO : this function should be a well defined object able to write and

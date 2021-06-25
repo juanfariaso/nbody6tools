@@ -25,7 +25,11 @@ class Data(object):
                     StepData = Step[data_key][()]
                     data_dict[data_key] = StepData
             data_dict["Time"] = numpy.full(nsingle, Step.attrs["Time"] )
-            self.data = data_dict
+            try:
+                check_duplicated(data_dict["NAM"] )
+                self.data = data_dict
+            except AssertionError:
+                print("WARNING: skipping singles on step %f due to duplicated                        single."%Step.attrs["Time"])
         if "Binaries" in Step:
             AUtoPC = 4.8481368111333442e-06 
             Bstep = Step["Binaries"]
@@ -56,11 +60,19 @@ class Data(object):
             
             bprim["Time"] = numpy.full(nbin, Step.attrs["Time"] )
             bsec["Time"] = numpy.full(nbin, Step.attrs["Time"] )
-            if ( len(bprim["NAM"]) == len(set(bprim["NAM"]))  or 
-                len(bsec["NAM"]) == len(set(bsec["NAM"])) ) :
+            try:
+                flag = 1
+                check_duplicated(bprim["NAM"] )
+                check_duplicated(bsec["NAM"] )
+                if len(self.data) > 0 :
+                    check_duplicated( numpy.concatenate(  [
+                                    bprim["NAM"],
+                                    bsec["NAM"],
+                                    self.data["NAM"] 
+                                    ]) )
                 self.append(bprim)
                 self.append(bsec)
-            else:
+            except AssertionError:
                 print("WARNING: skipping binares on step %f due to duplicated binary"  
                   " member."%Step.attrs["Time"])
 
@@ -112,7 +124,7 @@ class Data(object):
         n2 = numpy.sum(ids_to_update)
         #n3 = numpy.sum(ids_to_add)
         
-        assert  n1+n2 == len(id_vec)
+        assert  n1+n2 == len(id_vec), "%d, %d , %d"%(n1,n2,len(id_vec))
         self.clear()
         #not updated first:
         self.append(data0,ids_not_stored,not_stored_order)
@@ -646,3 +658,8 @@ def get_stored_names(Step):
     if "Binaries" in Step :
         names = numpy.concatenate([names,Step["Binaries"]["NAM1"],Step["Binaries"]["NAM2"] ])
     return names
+
+def check_duplicated(ids,label=None):
+        label = "" if label is None else label
+        if len(ids) > len(set(ids)):
+            raise AssertionError("Duplicated in ids: %s"%label)
