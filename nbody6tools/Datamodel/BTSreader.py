@@ -264,6 +264,8 @@ class H5nb6xxSnapshot(object):
         self.Nsnap = len(self.snapshotfiles)
 
     def _set_current_snapshot(self,isnap=None) : 
+        if isnap > self.Nsnap:
+            raise Exception("Reached the END of the simulation at : %g"%self.current_time)
         if isnap is None:
             try:
                 isnap = numpy.argwhere( self.tstart <= self.requested_time )[-1][0] 
@@ -430,11 +432,14 @@ class H5nb6xxSnapshot(object):
     def evolve_step(self):
         self.step_id += 1 
         if self.current_time + self.step_dt > self.tend[self.snapshot_id] :
+            if self.snapshot_id + 1 >= self.Nsnap:
+                print("Reached the end of the simulation")
+                return 1
             self.snapshot_id += 1 
             self._set_current_snapshot(self.snapshot_id)
             self.step_id = 0
-        self.load_current_step_data()
-        #print("evolving",len(self.current_step_data["NAM"]))
+        self.load_current_step_data() 
+        return 0
     
     def synchronize_particles(self):
         self.interpolate()
@@ -471,6 +476,7 @@ class BufferDaemon(object):
         self.closed = self.manager.Value("i",0)
         atexit.register(self.close)
         self.waitingtime = 0
+        self.Nsnap = len(self.snapshotfiles)
 
     @property
     def RunningJobs(self):
@@ -517,21 +523,22 @@ class BufferDaemon(object):
 
         Jobs = []
         while True:
-            if self.closed.get() == 1:
-                DataCollecter.terminate()
-                StatusCollecter.terminate()
-                break
-            if len(Jobs) < self.Njobs and len(self.databuffer) < self.Nbf:
-                p =  Process(target = self.worker,
-                             args = (sid,snapid),
-                             daemon=True)
-                p.start()
-                Jobs.append(p) #do not work. It dont update 
+            if snapid < self.Nsnap:
+                if self.closed.get() == 1:
+                    DataCollecter.terminate()
+                    StatusCollecter.terminate()
+                    break
+                if len(Jobs) < self.Njobs and len(self.databuffer) < self.Nbf:
+                    p =  Process(target = self.worker,
+                                 args = (sid,snapid),
+                                 daemon=True)
+                    p.start()
+                    Jobs.append(p) #do not work. It dont update 
 
-                sid += 1
-                if sid >= self.Nsteps[snapid]:
-                    snapid +=1
-                    sid = 0
+                    sid += 1
+                    if sid >= self.Nsteps[snapid]:
+                        snapid +=1
+                        sid = 0
             self.runningJobs.set(len(Jobs))
             for job in Jobs.copy():
                 if not job.is_alive() :
