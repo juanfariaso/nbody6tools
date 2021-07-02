@@ -8,13 +8,19 @@ from multiprocessing import Process,Queue,Manager
 import traceback
 
 class Data(object):
-    def __init__(self):
-        self.dataset_list = ['KW', 'L', 'M', 'MC', 'NAM', 'POT', 'RC', 'RS',
-            'TE', 'V1', 'V2', 'V3', 'X1', 'X2', 'X3','Time']
-        self.data = dict()
-        for dset_name in self.dataset_list:
-            self.data[dset_name] = numpy.array([])
-        self.times = numpy.array([])
+    def __init__(self,data_dict=None):
+        if data_dict is None:
+            self.dataset_list = ['KW', 'L', 'M', 'MC', 'NAM', 'POT', 'RC', 'RS',
+                'TE', 'V1', 'V2', 'V3', 'X1', 'X2', 'X3','Time']
+            self.data = dict()
+            for dset_name in self.dataset_list:
+                self.data[dset_name] = numpy.array([])
+        elif type(data_dict) is dict :
+            self.dataset_list = list(data_dict.keys()) 
+            self.data = data_dict.copy()
+        else:
+            raise ValueError("data_dict must be a dictionary")
+
 
     def load_from_step(self,Step):
         if "N_SINGLE" in Step.attrs :
@@ -163,12 +169,33 @@ class Data(object):
         data.append(data_copy)
         return data
 
-    def __getitem__(self,key) :
-        return self.data[key]
+    def __getitem__(self,index) :
+        if type(index) == str :
+            return self.data[index]
+        else:
+            d = dict()
+            for k in self.dataset_list:
+                d[k] = self.data[k][index]
+            return Data(data_dict = d)
 
-    def __setitem__(self,key,value) :
-        assert len(value) == self.__len__()
-        self.data[key] = value
+    # def __setitem__(self,key,value) :
+        # assert len(value) == self.__len__()
+        # self.data[key] = value
+
+    def __setitem__(self,index,value):
+        vlen = 1 if not hasattr(value,"__len__") else len(value)
+        if index in self.dataset_list:
+            if vlen == len(self):
+                self.data[index] = value
+                #self.__dict__[index] = value
+            else:
+                raise ValueError(" length of value must be the same as the number of particles" )
+        else:
+            raise KeyError("%s not in storage"%index)
+
+    def keys(self):
+        return self.dataset_list
+
 
 class H5nb6xxSnapshot(object):
     """ 
@@ -327,8 +354,15 @@ class H5nb6xxSnapshot(object):
         self.data.update( self.current_step_data.data)
         self.data_next.update(data_next.data)
         #t2 = time.time() #debug
+        # try:
         assert ( (self.data_next["NAM"][:len(self.data)] -
-                 self.data["NAM"]).sum() == 0 )
+                     self.data["NAM"]).sum() == 0 )
+        # except AssertionError:
+            # _,i,inext = numpy.intersect1d(self.data["NAM"],self.data_next["NAM"],
+                        # assume_unique=True,return_indices=True) 
+
+
+            
         self.check_duplicated(self.data["NAM"])
         self.check_duplicated(self.data_next["NAM"])
         #t3 = time.time() #debug
