@@ -60,15 +60,6 @@ class Methods():
         ke-= self.mass.sum() * (cmv**2).sum() * 0.5 
         return ke
 
-    def virial_ratio(self,G = 4.3020077853E-3,smoothing_length=0.01):
-        """
-        Returns virial ratio. It follows routine scale.F in Nbody6
-        TODO: Implement other external potentials, e.g. Plummer
-        """
-        epot = (self.epot*self.mass).sum()
-        vir = self.potential_energy() - 2*epot
-        return -self.kinetic_energy()/vir
-
     def center_of_mass(self):
         mtot = self.mass.sum()
         x = (self.mass*self.x).sum()/mtot

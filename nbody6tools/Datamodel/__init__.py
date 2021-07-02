@@ -327,7 +327,7 @@ class Snapshot(object):
 
             mask = r<=Rcl 
             K = (3.0-krho) / (2.-krho)
-            result+=numpy.nansum( (2.0-krho)*(
+            result+=numpy.nansum( (2.0-krho) / (5.-2.*krho) *(
                     (particles.epot+K*GMR)*particles.mass
                     )[mask]
                     )
