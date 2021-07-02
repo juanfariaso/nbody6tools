@@ -354,12 +354,23 @@ class H5nb6xxSnapshot(object):
         self.data.update( self.current_step_data.data)
         self.data_next.update(data_next.data)
         #t2 = time.time() #debug
-        # try:
-        assert ( (self.data_next["NAM"][:len(self.data)] -
-                     self.data["NAM"]).sum() == 0 )
-        # except AssertionError:
-            # _,i,inext = numpy.intersect1d(self.data["NAM"],self.data_next["NAM"],
-                        # assume_unique=True,return_indices=True) 
+        try:
+            assert ( (self.data_next["NAM"][:len(self.data)] -
+                         self.data["NAM"]).sum() == 0 )
+        except AssertionError:
+            print("WARNING: missing star in data or data_next, fixing")
+            _,i,inext = numpy.intersect1d(self.data["NAM"],self.data_next["NAM"],
+                        assume_unique=True,return_indices=True) 
+            self.data= self.data[i] 
+            self.data_next = self.data_next[inext]
+            data_next_new = self.data_next[~numpy.isin(self.data_next["NAM"],
+                                                       self.data["NAM"])]
+            self.data_next.append(data_next_new)
+            assert ( (self.data_next["NAM"][:len(self.data)] -
+                         self.data["NAM"]).sum() == 0 )
+
+
+
 
 
             
