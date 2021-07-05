@@ -17,7 +17,7 @@ class Data(object):
                 self.data[dset_name] = numpy.array([])
         elif type(data_dict) is dict :
             self.dataset_list = list(data_dict.keys()) 
-            self.data = data_dict.copy()
+            self.data = data_dict
         else:
             raise ValueError("data_dict must be a dictionary")
 
@@ -338,7 +338,7 @@ class H5nb6xxSnapshot(object):
 
         self.__initialize_data()
         self._BufferDaemon = BufferDaemon(self.snapshotfiles,
-                                           self.Nsteps,self.Nbf)
+                                           self.Nsteps,self.Njobs,self.Nbf)
         self._BufferDaemon.start()
         self.load_prev_step_data() #this advance the code until requested time
         self.load_current_step_data() #load current step data and get data_next
@@ -347,7 +347,8 @@ class H5nb6xxSnapshot(object):
     def load_current_step_data(self):
         #t0 = time.time() #debug
         tstep = self.h5part_file["Step#%d"%self.step_id].attrs["Time"]
-        key = "Snapshot%d:Step%d"%(self.snapshot_id,self.step_id)
+        #key = "Snapshot%d:Step%d"%(self.snapshot_id,self.step_id)
+        key = self._BufferDaemon.encode_stepUID(self.snapshot_id,self.step_id)
         tstep,self.current_step_data, data_next = self._BufferDaemon.get_data(key)
         self.current_time = tstep
         #t1 = time.time() #debug
@@ -361,17 +362,13 @@ class H5nb6xxSnapshot(object):
             print("WARNING: missing star in data or data_next, fixing")
             _,i,inext = numpy.intersect1d(self.data["NAM"],self.data_next["NAM"],
                         assume_unique=True,return_indices=True) 
-            self.data= self.data[i] 
+            self.data = self.data[i] 
             self.data_next = self.data_next[inext]
             data_next_new = self.data_next[~numpy.isin(self.data_next["NAM"],
                                                        self.data["NAM"])]
             self.data_next.append(data_next_new)
             assert ( (self.data_next["NAM"][:len(self.data)] -
                          self.data["NAM"]).sum() == 0 )
-
-
-
-
 
             
         self.check_duplicated(self.data["NAM"])
@@ -518,10 +515,12 @@ class BufferDaemon(object):
         self.Njobs = Njobs
         self.Queue = Queue()
         self.JobExitQueue = Queue()
+        self.TaskQueue = Queue()
         self.closed = self.manager.Value("i",0)
         atexit.register(self.close)
         self.waitingtime = 0
         self.Nsnap = len(self.snapshotfiles)
+        self.retrievedUIDS = []
 
     @property
     def RunningJobs(self):
@@ -533,17 +532,19 @@ class BufferDaemon(object):
     def stop(self):
         self.Master.terminate()
 
-    def worker(self,stepid,snapid):
-        try : 
-            key = "Snapshot%d:Step%d"%(snapid,stepid)
-            tstep,data,data_next = next_step_finder(stepid,self.snapshotfiles[snapid:] )
-            self.Queue.put( (key,tstep,data,data_next)  )
-            self.JobExitQueue.put( (tstep,0,"") )
-        except:
-            pos = "Snapshot%d:Step%d"%(snapid,stepid)
-            err = traceback.format_exc()
-            self.JobExitQueue.put((pos,-1,err))
-        return
+    def worker(self):
+        while True:
+            #print("Worker",self.TaskQueue.qsize())
+            snapid,stepid = self.TaskQueue.get()
+            key = self.encode_stepUID(snapid,stepid)
+            try : 
+                #key = "Snapshot%d:Step%d"%(snapid,stepid)
+                tstep,data,data_next = next_step_finder(stepid,self.snapshotfiles[snapid:] )
+                self.Queue.put( (key,tstep,data,data_next)  )
+                self.JobExitQueue.put( (tstep,0,"") )
+            except:
+                err = traceback.format_exc()
+                self.JobExitQueue.put((key,-1,err))
 
     def collecter(self,Cdict,Queue):
         # get() block the code here until there is something to get
@@ -567,45 +568,53 @@ class BufferDaemon(object):
         StatusCollecter.start()
 
         Jobs = []
+        for _ in range(self.Njobs):
+            worker = Process(target = self.worker,daemon = True)
+            worker.start()
+            Jobs.append(worker)
+
         while True:
             if snapid < self.Nsnap:
                 if self.closed.get() == 1:
                     DataCollecter.terminate()
                     StatusCollecter.terminate()
                     break
-                if len(Jobs) < self.Njobs and len(self.databuffer) < self.Nbf:
-                    p =  Process(target = self.worker,
-                                 args = (sid,snapid),
-                                 daemon=True)
-                    p.start()
-                    Jobs.append(p) #do not work. It dont update 
-
+                if  self.TaskQueue.qsize() + len(self.databuffer) < self.Nbf:
+                    self.TaskQueue.put((snapid,sid))
                     sid += 1
                     if sid >= self.Nsteps[snapid]:
                         snapid +=1
-                        sid = 0
-            self.runningJobs.set(len(Jobs))
-            for job in Jobs.copy():
-                if not job.is_alive() :
-                    #Do i need to do something else to free resources?
-                    Jobs.remove(job)
+                        sid = 1
 
             for key in self.JobsStatus.copy():
                 status,err = self.JobsStatus.pop(key)
                 if status < 0:
                     raise Exception("\n"+err)
 
-
-    def get_data(self,key):
+    def get_data(self,UID):
         while True:
             t0 = time.time()
-            if (not key in self.databuffer) and self.RunningJobs == 0 and len(self.databuffer) >= self.Nbf :
+            if (not UID in self.databuffer) and len(self.databuffer) >= self.Nbf :
                 self.stop()
-                raise KeyError("%s not in list"%key)
-            if key in self.databuffer:
-                result = self.databuffer.pop(key)
+                #raise KeyError("%s not in list"%UID)
+                snap,step = self.decode_stepUID(UID)
+                print("WARNING: Step %d on Snapshot #%d\n"
+                      "Calculating again"%(step,snap))
+                return next_step_finder(step,self.snapshotfiles[snap:])
+            if UID in self.databuffer:
+                result = self.databuffer.pop(UID)
+                self.retrievedUIDS.append(UID)
                 return result
             self.waitingtime += time.time() - t0
+
+    def encode_stepUID(self,snapid,stepid):
+        return self.Nsnap*snapid + stepid
+
+    def decode_stepUID(self,UID):
+        snapid = int( (UID-1)/self.Nsteps ) 
+        stepid = UID - snapid*self.Nsteps
+        return snapid,stepid
+
     def close(self):
         self.closed.set(1) 
         time.sleep(1)
