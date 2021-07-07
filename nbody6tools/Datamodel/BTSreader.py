@@ -611,8 +611,8 @@ class BufferDaemon(object):
         return self.Nsnap*snapid + stepid
 
     def decode_stepUID(self,UID):
-        snapid = int( (UID-1)/self.Nsteps ) 
-        stepid = UID - snapid*self.Nsteps
+        snapid = int( (UID-1)/self.Nsteps[0] ) 
+        stepid = UID - snapid*self.Nsteps[0]
         return snapid,stepid
 
     def close(self):
