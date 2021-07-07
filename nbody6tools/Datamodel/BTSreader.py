@@ -507,6 +507,7 @@ class BufferDaemon(object):
         self.JobsStatus = self.manager.dict()
         self.runningJobs = self.manager.Value("i",0)
         self.Master = Process( target = self.main )
+        self.ProcessingUIDS = self.manager.list()
         if type(Nsteps) is int:
             self.Nsteps = numpy.full_like(self.snapshotfiles,Nsteps,dtype="int")
         else:
@@ -520,7 +521,6 @@ class BufferDaemon(object):
         atexit.register(self.close)
         self.waitingtime = 0
         self.Nsnap = len(self.snapshotfiles)
-        self.retrievedUIDS = []
 
     @property
     def RunningJobs(self):
@@ -534,7 +534,6 @@ class BufferDaemon(object):
 
     def worker(self):
         while True:
-            #print("Worker",self.TaskQueue.qsize())
             snapid,stepid = self.TaskQueue.get()
             key = self.encode_stepUID(snapid,stepid)
             try : 
@@ -581,6 +580,7 @@ class BufferDaemon(object):
                     break
                 if  self.TaskQueue.qsize() + len(self.databuffer) < self.Nbf:
                     self.TaskQueue.put((snapid,sid))
+                    self.ProcessingUIDS.append(self.encode_stepUID(snapid,sid))
                     sid += 1
                     if sid >= self.Nsteps[snapid]:
                         snapid +=1
@@ -594,18 +594,18 @@ class BufferDaemon(object):
     def get_data(self,UID):
         while True:
             t0 = time.time()
-            if (not UID in self.databuffer) and len(self.databuffer) >= self.Nbf :
+            if not UID in self.ProcessingUIDS : 
                 #self.stop()
                 #raise KeyError("%s not in list"%UID)
                 snap,step = self.decode_stepUID(UID)
                 print("WARNING: Step %d on Snapshot #%d\n retrieved aleady"
                       "Calculating again"%(step,snap))
-                return next_step_finder(step,self.snapshotfiles[snap:])
+                result = next_step_finder(step,self.snapshotfiles[snap:])
             if UID in self.databuffer:
                 result = self.databuffer.pop(UID)
-                self.retrievedUIDS.append(UID)
-                return result
+                self.ProcessingUIDS.remove(UID)
             self.waitingtime += time.time() - t0
+            return result
 
     def encode_stepUID(self,snapid,stepid):
         return self.Nsnap*snapid + stepid
