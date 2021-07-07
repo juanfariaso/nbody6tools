@@ -164,9 +164,8 @@ class Data(object):
                 self.data[key] = numpy.array([]).astype(key_dtype)
 
     def copy(self):
-        data = Data()
         data_copy = self.data.copy()
-        data.append(data_copy)
+        data = Data(data_dict=data_copy)
         return data
 
     def __getitem__(self,index) :
