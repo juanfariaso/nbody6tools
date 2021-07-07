@@ -595,10 +595,10 @@ class BufferDaemon(object):
         while True:
             t0 = time.time()
             if (not UID in self.databuffer) and len(self.databuffer) >= self.Nbf :
-                self.stop()
+                #self.stop()
                 #raise KeyError("%s not in list"%UID)
                 snap,step = self.decode_stepUID(UID)
-                print("WARNING: Step %d on Snapshot #%d\n"
+                print("WARNING: Step %d on Snapshot #%d\n retrieved aleady"
                       "Calculating again"%(step,snap))
                 return next_step_finder(step,self.snapshotfiles[snap:])
             if UID in self.databuffer:
