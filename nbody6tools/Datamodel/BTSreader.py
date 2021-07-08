@@ -101,7 +101,6 @@ class Data(object):
 
         for key in self.dataset_list : 
             key_dtype = data_new[key].dtype
-            #print(key,data_new[key][:5])
             if key in data_new: 
                 self.data[key] = numpy.concatenate([
                                 self.data[key],
@@ -122,14 +121,11 @@ class Data(object):
         # use with ids_in_step or data_new[key]
         ids_to_update =  numpy.isin(new_ids,id_vec)
         to_update_order = numpy.argsort(new_ids[ids_to_update] )
-
         ids_to_add = numpy.invert(numpy.isin(new_ids,id_vec) )
         #to_add_order = numpy.argsort(ids_in_step[ids_to_add] )
-
         n1 = numpy.sum(ids_not_stored)
         n2 = numpy.sum(ids_to_update)
         #n3 = numpy.sum(ids_to_add)
-        
         assert  n1+n2 == len(id_vec), "%d, %d , %d"%(n1,n2,len(id_vec))
         self.clear()
         #not updated first:
@@ -189,6 +185,17 @@ class Data(object):
                 #self.__dict__[index] = value
             else:
                 raise ValueError(" length of value must be the same as the number of particles" )
+        elif type(index) is list or type(index) is slice :
+            if len(value.keys()) == len(self.keys()) :
+                for k in value.keys() :
+                    if k not in self.keys() :
+                        raise ValueError("Data keys must be same elements")
+                for k in self.dataset_list:
+                    self.data[k][index] = value[k]
+            else:
+                raise KeyError("Data keys must contain same elements")
+            
+            
         else:
             raise KeyError("%s not in storage"%index)
 
