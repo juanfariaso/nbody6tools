@@ -606,12 +606,13 @@ class BufferDaemon(object):
                 snap,step = self.decode_stepUID(UID)
                 print("WARNING: Step %d on Snapshot #%d\n retrieved aleady"
                       "Calculating again"%(step,snap))
-                result = next_step_finder(step,self.snapshotfiles[snap:])
+                return next_step_finder(step,self.snapshotfiles[snap:])
             if UID in self.databuffer:
                 result = self.databuffer.pop(UID)
                 self.ProcessingUIDS.remove(UID)
+                return result
             self.waitingtime += time.time() - t0
-            return result
+            #return result
 
     def encode_stepUID(self,snapid,stepid):
         return self.Nsnap*snapid + stepid
