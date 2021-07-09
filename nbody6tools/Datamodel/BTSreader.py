@@ -466,7 +466,7 @@ class H5nb6xxSnapshot(object):
                 pred = p0 + p1 * tau + p2 * pow(tau, 2.0) + p3 * pow(tau, 3.0) + p4 * pow(tau, 4.0) + p5 * pow(tau, 5.0) + p6 * pow(tau, 6.0) + p7 * pow(tau, 7.0)
             else:
                 pred = p0 + p1 * tau + p2 * pow(tau, 2.0) + p3 * pow(tau, 3.0)
-            self.data_interp[dset_name] = pred
+            self.data_interp[dset_name] = numpy.array(pred,dtype=self.data[dset_name].dtype)
 
         # for key in self.dataset_list : 
             # if key in self.data and key not in dataset_interp:
