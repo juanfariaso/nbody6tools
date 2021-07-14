@@ -805,7 +805,7 @@ class Particles(Methods):
             raise ValueError("Particles center must have length 3")
 
     def copy(self):
-        outputdict = self.__data_keys.copy()
+        outputdict = self.__data.copy()
         # for key  in self.__data.keys() :
             # outputdict[key] = self.__data[key].copy()
         return Particles(outputdict,center=self.center,physical=self.physical)
