@@ -377,7 +377,7 @@ class H5nb6xxSnapshot(object):
         if self.requested_time > 0:
             self.data = backward_finder(self.step_id,
                                         self.snapshotfiles[:(self.snapshot_id+1)],
-                                        verbose = True)
+                                        verbose = False)
             self.data.sort()
         
         ## buffer daemon here bacause it needs self.snapshot_id and step id. 
@@ -809,6 +809,7 @@ def backward_finder(stepid,snapshotfiles,verbose=False):
 
     stepid0 = stepid - 1
     done=False
+    Nfound = len(found_ids)
     for snapid in range(snapidLast,-1,-1) :
         if h5file is not None:
             h5file.close()
@@ -818,85 +819,51 @@ def backward_finder(stepid,snapshotfiles,verbose=False):
 
         stepid0 = nsteps-1 if snapid != snapidLast else stepid-1
 
+        
         for istep in range(stepid0,-1,-1):
-            #print("Snapid,step",snapid,istep,"Found %s, Nmax %d"%(
-            #    len(found_ids),max(found_ids) ) )
             iStep = h5file["Step#%d" % istep ]
             newHere = numpy.isin(get_stored_names(iStep),found_ids,invert=True)
+            ctime = iStep.attrs["Time"]
             if newHere.sum() == 0:
-                print("Time %.5g,         "%(ctime),
+                print("Searching previous stars: Time %.5g, Found: %d/%d "%(
+                        ctime,Nfound,GreaterName),
                     end="\r ")
                 #print("skipped")
+                if len(found_ids) == GreaterName :
+                    done = True
+                    print("%d stars found at time = %.3g                   "%(
+                            Nfound,ctime) )
+                    break
+                if abs(ctime - tstep0) > 1 :
+                    done = True
+                    print("Warning: Not all particles were found")
+                    break
                 continue
-            ctime = iStep.attrs["Time"]
-            #print("\n total here:",len(newHere) )
-            #print("\n new here:",len(get_stored_names(iStep)[newHere]) )
             idata = Data()
             idata.load_from_step(iStep)
             sids = idata.data["NAM"]
-            #print("loaded :",len(sids))
             just_found = numpy.isin(sids,found_ids,invert=True)
-            #print("loaded new :",just_found.sum())
             if just_found.sum() == 0 :
                 raise
 
             for group in [ just_found]: 
                 order = numpy.argsort(sids[group])
                 found_data.append(idata.data,group,order)
-                # found_tstep = numpy.concatenate([
-                        # found_tstep,
-                        # numpy.full_like(sids[group],tstep)
-                        # ])
             found_ids = found_data.data["NAM"]
             GreaterName = found_ids.max()
-            if len(found_ids) == GreaterName :
-                done = True
-                print("ALL founds %d, at time = %.3g                        "%(
-                        len(found_ids),ctime) )
-                break
-            if abs(ctime - tstep0) > 1 :
-                done = True
-                print("Warning: Not all particles were found")
+            Nfound = len(found_ids)
 
             if verbose:
-                # print(" Found: %i/%i        "%(
-                        # numpy.sum(numpy.isin(id_vec,found_ids,invert=False)),
-                        # len(id_vec)
-                    # ),
-                    # end = "\r")
                 print("Time %.5g,                      %d/%d Particles found                       "%(
                     ctime, len(found_ids),GreaterName),
                     end="\r ")
-            # if numpy.sum(numpy.isin(id_vec,found_ids,invert=True)) == 0:
-                # done = True
-                # break
                 
         if done:
-            #print("closing file",h5file)
             h5file.close()
             break
     if verbose:
-        print("Reached the beginning. %i stars found"%len(found_ids))
+        print("%i stars found"%len(found_ids))
 
-    # h5file.close()
-
-    #finally make sure the firts N common ids are in the same order
-    # id_vec is assumed to be already sorted 
-# TODO: Add debug mode to avoid unnessesary sorting
-    # Assert that the id_vec is sorted
-    assert numpy.array_equal(numpy.argsort(id_vec),numpy.arange(len(id_vec)))
-    # found = numpy.isin(found_data.data["NAM"],id_vec) 
-    # #self.check_duplicated(found_data["NAM"],"(B) duplicated in found data")
-    # new = numpy.invert(found)
-    # ifound = numpy.argsort(found_data.data["NAM"][found] ) 
-    # inew = numpy.argsort(found_data.data["NAM"][new] ) 
-
-    # dataout = Data()
-    # dataout.append( found_data.data,found,ifound )
-    # dataout.append( found_data.data,new,inew )
-    # found_tstep = numpy.concatenate([found_tstep[found][ifound],
-                                            # found_tstep[new][inew]
-    #return tstep,data,dataout
     return found_data
 
 def get_stored_names(Step):
