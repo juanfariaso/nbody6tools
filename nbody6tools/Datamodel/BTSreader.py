@@ -2,7 +2,7 @@ import os
 import atexit
 import h5py
 import numpy 
-from nbody6tools import Reader
+from nbody6tools import Reader, Datamodel
 import time #debug
 from multiprocessing import Process,Queue,Manager
 import traceback
@@ -21,7 +21,6 @@ class Data(object):
             self.data = data_dict
         else:
             raise ValueError("data_dict must be a dictionary")
-
 
     def load_from_step(self,Step):
         if "N_SINGLE" in Step.attrs :
@@ -212,6 +211,24 @@ class Data(object):
     def keys(self):
         return self.dataset_list
 
+    def as_particle_set(self):
+        #TODO: as_particle_set: add a density center. Using center of mass 
+        stars_dict = dict()
+        stars_dict["name"] = self.data["NAM"]
+        stars_dict["mass"] = self.data["M"]
+        stars_dict["x"] = self.data["X1"]
+        stars_dict["y"] = self.data["X2"]
+        stars_dict["z"] = self.data["X3"] 
+        stars_dict["vx"] = self.data["V1"] 
+        stars_dict["vy"] = self.data["V2"] 
+        stars_dict["vz"] = self.data["V3"]
+        stars_dict["pot"] = self.data["POT"] #TODO: check that POT have right units
+        stars_dict["epot"] = self.data["POT"]*0.0 #TODO: add epot to Data
+        
+        result = Datamodel.Particles(stars_dict,physical=True) 
+        center = result.center_of_mass()
+        result.set_center(center)
+        return result
 
 class H5nb6xxSnapshot(object):
     """ 
