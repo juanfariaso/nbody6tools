@@ -31,12 +31,13 @@ class Data(object):
                     StepData = Step[data_key][()]
                     data_dict[data_key] = StepData
             data_dict["Time"] = numpy.full(nsingle, Step.attrs["Time"] )
-            try:
-                check_duplicated(data_dict["NAM"] )
-                self.data = data_dict
-            except AssertionError:
-                print("WARNING: skipping singles on step %f due to duplicated"
-                      " single. (snapid,)"%Step.attrs["Time"])
+            self.append(data_dict)
+            # try:
+                # check_duplicated(data_dict["NAM"] )
+                # self.data = data_dict
+            # except AssertionError:
+                # print("WARNING: skipping singles on step %f due to duplicated"
+                      # " single. (snapid,)"%Step.attrs["Time"])
         if "Binaries" in Step:
             AUtoPC = 4.8481368111333442e-06 
             Bstep = Step["Binaries"]
@@ -68,14 +69,14 @@ class Data(object):
             bprim["Time"] = numpy.full(nbin, Step.attrs["Time"] )
             bsec["Time"] = numpy.full(nbin, Step.attrs["Time"] )
             try:
-                check_duplicated(bprim["NAM"] )
-                check_duplicated(bsec["NAM"] )
-                if len(self.data) > 0 :
-                    check_duplicated( numpy.concatenate(  [
-                                    bprim["NAM"],
-                                    bsec["NAM"],
-                                    self.data["NAM"] 
-                                    ]) )
+                # check_duplicated(bprim["NAM"] )
+                # check_duplicated(bsec["NAM"] )
+                # if len(self.data) > 0 :
+                    # check_duplicated( numpy.concatenate(  [
+                                    # bprim["NAM"],
+                                    # bsec["NAM"],
+                                    # self.data["NAM"] 
+                                    # ]) )
                 self.append(bprim)
                 self.append(bsec)
             except AssertionError:
@@ -88,13 +89,114 @@ class Data(object):
                 for key in bprim.keys() :
                     bprim[key] = numpy.array(bprim[key])[i]
                     bsec[key] = numpy.array(bsec[key])[i]
+                self.append(bprim)
+                self.append(bsec)
         #Dobule check above has no duplicates
-        check_duplicated(self.data["NAM"])
-                
+        # try:
+            # check_duplicated(self.data["NAM"])
+        # except :
+            # print()
+
         if "Mergers" in Step: 
     # TODO: Implement mergers in BTSreader
-            raise NotImplemented("Megers not implemented yet")
+            #raise NotImplemented("Megers not implemented yet")
+            AUtoPC = 4.8481368111333442e-06 
+            Mstep = Step["Mergers"]
+            nmergers = Mstep.attrs["N_MERGER"]
 
+            bprim = dict()
+            bsec = dict()
+            binary = dict() #helper dict 
+            bpert = dict()
+            Mcm0 = Mstep["M1"][()] + Mstep["M2"][()]
+            Mcm1 = Mcm0 + Mstep["M3"][()]
+            #Resolve perturber first
+            for k in [1,2,3]:
+                binary["X%i" % k] = (
+                    Mstep["XC%i" % k][()] +
+                    Mstep["M3"][()]/Mcm1*Mstep["XR1%i" % k][()]*AUtoPC
+                    )
+                bpert["X%i"%k] = binary["X%i"%k][()] - Mstep["XR1%i"%k][()]*AUtoPC
+                binary["V%i"%k] = (
+                    Mstep["VC%i"%k][()] 
+                    + Mstep["M3"][()]/Mcm1*Mstep["VR1%i"%k][()]
+                    )
+                bpert["V%i"%k] = binary["V%i"%k][()] - Mstep["VR1%i"%k][()]
+
+            #Resolve binary members
+            for k in [1,2,3]:
+                bprim["X%i" % k] = (
+                    binary["X%i" % k][()] +
+                    Mstep["M2"][()]/Mcm0*Mstep["XR0%i" % k][()]*AUtoPC
+                    )
+                bsec["X%i"%k] = bprim["X%i"%k][()] - Mstep["XR0%i"%k][()]*AUtoPC
+                bprim["V%i"%k] = (
+                    binary["V%i"%k][()] 
+                    + Mstep["M2"][()]/Mcm0*Mstep["VR0%i"%k][()]
+                    )
+                bsec["V%i"%k] = bprim["V%i"%k][()] - Mstep["VR0%i"%k][()]
+
+            for k in ["KW","L","M","MC","NAM","RC","RS","TE" ]:
+                bprim[k] = Mstep["%s1"%k ][()]
+                bsec[k] = Mstep["%s2"%k ][()]
+                bpert[k] = Mstep["%s3"%k ][()]
+
+            #TODO: This must be fixed. Calculate the right potential for each member
+            bprim["POT"] = Mstep["POT"] 
+            bsec["POT"] = Mstep["POT"] 
+            bpert["POT"] = Mstep["POT"] 
+
+            for k in ["KW","L","M","MC","NAM","RC","RS","TE" ]:
+                bprim[k] = Mstep["%s1"%k ][()]
+                bsec[k] = Mstep["%s2"%k ][()]
+            
+            bprim["Time"] = numpy.full(nmergers, Step.attrs["Time"] )
+            bsec["Time"] = numpy.full(nmergers, Step.attrs["Time"] )
+            bpert["Time"] = numpy.full(nmergers, Step.attrs["Time"] )
+            try:
+                #check_duplicated(bprim["NAM"] )
+                #check_duplicated(bsec["NAM"] )
+                #check_duplicated(bpert["NAM"] )
+                # if len(self.data) > 0 :
+                    # check_duplicated( numpy.concatenate(  [
+                                    # bprim["NAM"],
+                                    # bsec["NAM"],
+                                    # bpert["NAM"],
+                                    # self.data["NAM"] 
+                                    # ]) )
+                self.append(bprim)
+                self.append(bsec)
+                self.append(bpert)
+            except AssertionError:
+                raise Exception("Duplicated in merger. Please report this for a method check")
+                print("WARNING: fixing duplicated mergers on step %f"  
+                  ""%Step.attrs["Time"])
+                
+                #TODO: BTS: Find out why appears duplicated mergers and best solution for them
+                names,i = numpy.unique(bprim["NAM"],return_index = True )
+                print("there are : %d duplicated"%( len(bprim["NAM"]) - len(names) ) )
+                for key in bprim.keys() :
+                    bprim[key] = numpy.array(bprim[key])[i]
+                    bsec[key] = numpy.array(bsec[key])[i]
+                    bpert[key] = numpy.array(bsec[key])[i]
+                self.append(bprim)
+                self.append(bsec)
+                self.append(bpert)
+
+        try :
+            check_duplicated(self.data["NAM"])
+        except AssertionError:
+            print("\nfixing duplicated on step :",Step)
+                  #""%Step.attrs["Time"])
+                
+            #TODO: BTS: Find out why appears duplicated binaries and best solution for them
+            names,i,c = numpy.unique(self.data["NAM"],return_counts=True,return_index = True )
+            print("there are : %d duplicated"%( len(self.data["NAM"]) - len(names) ) )
+            print(names[c>1])
+            datadict = dict()
+            for key in self.data.keys() :
+                datadict[key] = self.data[key][i]
+            self.data = datadict
         self.sort()
         #self.check_duplicated(data_dict["NAM"],"combined")
         #self.data = data_dict
@@ -889,6 +991,10 @@ def get_stored_names(Step):
         names = numpy.concatenate([names, Step["NAM"] ])
     if "Binaries" in Step :
         names = numpy.concatenate([names,Step["Binaries"]["NAM1"],Step["Binaries"]["NAM2"]])
+    if "Mergers" in Step :
+        names = numpy.concatenate([names,Step["Mergers"]["NAM1"],
+                                   Step["Mergers"]["NAM2"],
+                                   Step["Mergers"]["NAM3"]])
     return numpy.array(names,dtype=int)
 
 def check_duplicated(ids,label=None):
