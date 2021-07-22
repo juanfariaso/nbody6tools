@@ -23,6 +23,7 @@ class Data(object):
             raise ValueError("data_dict must be a dictionary")
 
     def load_from_step(self,Step):
+        self.data = dict()
         if "N_SINGLE" in Step.attrs :
             data_dict = dict()
             nsingle = Step.attrs["N_SINGLE"]
@@ -32,12 +33,7 @@ class Data(object):
                     data_dict[data_key] = StepData
             data_dict["Time"] = numpy.full(nsingle, Step.attrs["Time"] )
             self.append(data_dict)
-            # try:
-                # check_duplicated(data_dict["NAM"] )
-                # self.data = data_dict
-            # except AssertionError:
-                # print("WARNING: skipping singles on step %f due to duplicated"
-                      # " single. (snapid,)"%Step.attrs["Time"])
+
         if "Binaries" in Step:
             AUtoPC = 4.8481368111333442e-06 
             Bstep = Step["Binaries"]
@@ -68,38 +64,11 @@ class Data(object):
             
             bprim["Time"] = numpy.full(nbin, Step.attrs["Time"] )
             bsec["Time"] = numpy.full(nbin, Step.attrs["Time"] )
-            try:
-                # check_duplicated(bprim["NAM"] )
-                # check_duplicated(bsec["NAM"] )
-                # if len(self.data) > 0 :
-                    # check_duplicated( numpy.concatenate(  [
-                                    # bprim["NAM"],
-                                    # bsec["NAM"],
-                                    # self.data["NAM"] 
-                                    # ]) )
-                self.append(bprim)
-                self.append(bsec)
-            except AssertionError:
-                print("WARNING: fixing duplicated binares on step %f"  
-                  ""%Step.attrs["Time"])
-                
-                #TODO: BTS: Find out why appears duplicated binaries and best solution for them
-                names,i = numpy.unique(bprim["NAM"],return_index = True )
-                print("ther are : %d duplicated"%( len(bprim["NAM"]) - len(names) ) )
-                for key in bprim.keys() :
-                    bprim[key] = numpy.array(bprim[key])[i]
-                    bsec[key] = numpy.array(bsec[key])[i]
-                self.append(bprim)
-                self.append(bsec)
-        #Dobule check above has no duplicates
-        # try:
-            # check_duplicated(self.data["NAM"])
-        # except :
-            # print()
+            self.append(bprim)
+            self.append(bsec)
 
         if "Mergers" in Step: 
     # TODO: Implement mergers in BTSreader
-            #raise NotImplemented("Megers not implemented yet")
             AUtoPC = 4.8481368111333442e-06 
             Mstep = Step["Mergers"]
             nmergers = Mstep.attrs["N_MERGER"]
@@ -154,16 +123,6 @@ class Data(object):
             bsec["Time"] = numpy.full(nmergers, Step.attrs["Time"] )
             bpert["Time"] = numpy.full(nmergers, Step.attrs["Time"] )
             try:
-                #check_duplicated(bprim["NAM"] )
-                #check_duplicated(bsec["NAM"] )
-                #check_duplicated(bpert["NAM"] )
-                # if len(self.data) > 0 :
-                    # check_duplicated( numpy.concatenate(  [
-                                    # bprim["NAM"],
-                                    # bsec["NAM"],
-                                    # bpert["NAM"],
-                                    # self.data["NAM"] 
-                                    # ]) )
                 self.append(bprim)
                 self.append(bsec)
                 self.append(bpert)
@@ -172,7 +131,6 @@ class Data(object):
                 print("WARNING: fixing duplicated mergers on step %f"  
                   ""%Step.attrs["Time"])
                 
-                #TODO: BTS: Find out why appears duplicated mergers and best solution for them
                 names,i = numpy.unique(bprim["NAM"],return_index = True )
                 print("there are : %d duplicated"%( len(bprim["NAM"]) - len(names) ) )
                 for key in bprim.keys() :
@@ -184,22 +142,19 @@ class Data(object):
                 self.append(bpert)
 
         try :
+            #TODO: BTS: Find out why some stars appears duplicated and best solution for them
             check_duplicated(self.data["NAM"])
         except AssertionError:
-            print("\nfixing duplicated on step :",Step)
-                  #""%Step.attrs["Time"])
                 
-            #TODO: BTS: Find out why appears duplicated binaries and best solution for them
             names,i,c = numpy.unique(self.data["NAM"],return_counts=True,return_index = True )
-            print("there are : %d duplicated"%( len(self.data["NAM"]) - len(names) ) )
+            print("fixing duplicated on step %s, time:"
+                  "%f: names: "%(Step,Step.attrs["Time"]),end="")
             print(names[c>1])
             datadict = dict()
             for key in self.data.keys() :
                 datadict[key] = self.data[key][i]
             self.data = datadict
         self.sort()
-        #self.check_duplicated(data_dict["NAM"],"combined")
-        #self.data = data_dict
 
     def append(self,data_new,mask=None,order=None):
         mask = numpy.ones(len(data_new["NAM"]),dtype=bool) if mask is None else mask
