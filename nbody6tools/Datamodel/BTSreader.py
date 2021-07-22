@@ -23,7 +23,7 @@ class Data(object):
             raise ValueError("data_dict must be a dictionary")
 
     def load_from_step(self,Step):
-        self.data = dict()
+        #self.clear()
         if "N_SINGLE" in Step.attrs :
             data_dict = dict()
             nsingle = Step.attrs["N_SINGLE"]
@@ -323,7 +323,8 @@ class H5nb6xxSnapshot(object):
         total number. But identify them and collect their information in an ID array.
 
     """
-    def __init__(self,snapshotfiles,inputfile,time=0,Njobs=1,buffer_length=1):
+    def __init__(self,snapshotfiles,inputfile,time=0,Njobs=1,buffer_length=1,
+                 t_back_max = 1):
         self.inputpar = Reader.parse_inputfile(inputfile)
         if self.inputpar["KZ"][46] != 1:
             raise NotImplemented("Hdf5 only implemented for KZ[46]==1")
@@ -331,6 +332,7 @@ class H5nb6xxSnapshot(object):
         #TODO: H5nb6xxSnapshot: protect internal variables from evil user
         self.step_dt = 2**(-self.inputpar["KZ"][47]) 
         self.requested_time = time # time user wants
+        self.t_back_max = t_back_max
         self.snapshotfiles = snapshotfiles
         self.current_time = 0 #time at current step
         self.time = 0 # time at which data is synchronized
@@ -356,16 +358,13 @@ class H5nb6xxSnapshot(object):
         tstart,tend,Nsteps = numpy.array([]),numpy.array([]), numpy.array([],dtype=int)
         for snap in tqdm(self.snapshotfiles,desc = "Initializing Snapshots:",
                          leave = False): 
-            #print(snap, end  = "  ")
             h5part_file = h5py.File(snap,"r")
             nsteps = len(h5part_file)
             step_l = nsteps - 1 
             t0 = h5part_file["Step#%d" % 0].attrs["Time"]
             tf = h5part_file["Step#%d" % step_l ].attrs["Time"]
-            #print(snap,step_l)
             tstart = numpy.append( tstart, t0 )
             tend = numpy.append( tend, tf)
-            #tend = numpy.append(tstart, t0 + self.step_dt*nsteps  )
             Nsteps = numpy.append( Nsteps, nsteps )
 
             h5part_file.close()
@@ -384,8 +383,6 @@ class H5nb6xxSnapshot(object):
         
         if self.requested_time > 0 :
             self.snapshot_id = numpy.where(self.tstart <= self.requested_time)[0][-1]
-            #t = self.requested_time - self.tstart[self.snapshot_id]
-            #self.step_id =  int(numpy.floor( t / self.step_dt) )
             h5part_file = h5py.File( self.snapshotfiles[self.snapshot_id],"r")
             t = 0
             istep = -1
@@ -412,7 +409,6 @@ class H5nb6xxSnapshot(object):
                                                        self.snapshotfiles[0]
                                                                                 ))
         self.snapshot_id = isnap
-        #self.close()
         self.h5part_file = self.open_snapshotfile(isnap)
 
     def open_snapshotfile(self,snapid):
@@ -446,11 +442,10 @@ class H5nb6xxSnapshot(object):
         # Start buffer daemon. This is the one that really do all the reading.
         # TODO: (check) that Buffer daemon really do all the reading and remove all reading functions from BTS class
         
-        # print(self.step_id,self.snapshot_id+1)
-        # exit()
         if self.requested_time > 0:
             self.data = backward_finder(self.step_id,
                                         self.snapshotfiles[:(self.snapshot_id+1)],
+                                        tback = self.t_back_max,
                                         verbose = False)
             self.data.sort()
         
@@ -527,8 +522,6 @@ class H5nb6xxSnapshot(object):
                 tstep = Step.attrs["Time"]
                 data_new = Data()
                 data_new.load_from_step(Step)
-                #step_vec_new = numpy.ones(len(data_new["NAM"]) )*tstep
-                #self.step_vec = self.update_data(self.data,self.step_vec,data_new,step_vec_new)
                 self.data.update(data_new.data)
                 print("Scanning file: %s - Time: %.3f          "%(
                     filename, tstep  ),end="\r" )
@@ -585,10 +578,6 @@ class H5nb6xxSnapshot(object):
                 pred = p0 + p1 * tau + p2 * pow(tau, 2.0) + p3 * pow(tau, 3.0)
             self.data_interp[dset_name] = numpy.array(pred,dtype=self.data[dset_name].dtype)
 
-        # for key in self.dataset_list : 
-            # if key in self.data and key not in dataset_interp:
-                # self.data_interp[key] = self.data[key]
-        
 
     #def evolve_model(self,time):
     #    self.step_vec,self.data = self.scan_data(time,
@@ -669,7 +658,7 @@ class BufferDaemon(object):
                 self.JobExitQueue.put((key,-1,err))
 
     def collecter(self,Cdict,Queue):
-        # get() block the code here until there is something to get
+        # note that get() block the code here until there is something to get
         # it expect a 3-length tuple wher first item is used as key
         while True:
             out = Queue.get() 
@@ -718,8 +707,6 @@ class BufferDaemon(object):
         while True:
             t0 = time.time()
             if not UID in self.ProcessingUIDS : 
-                #self.stop()
-                #raise KeyError("%s not in list"%UID)
                 snap,step = self.decode_stepUID(UID)
                 print("WARNING: Step %d on Snapshot #%d retrieved aleady"
                       "\n Calculating again"%(step,snap))
@@ -729,7 +716,6 @@ class BufferDaemon(object):
                 self.ProcessingUIDS.remove(UID)
                 return result
             self.waitingtime += time.time() - t0
-            #return result
 
     def encode_stepUID(self,snapid,stepid):
         return self.Nsnap*snapid + stepid
@@ -785,7 +771,6 @@ def next_step_finder(stepid,snapshotfiles,verbose=False,data = None):
     for snapid in range(snapid0,len(snapshotfiles)) :
         if h5file is not None:
             h5file.close()
-        #print("opening",snapshotfiles[snapid])
         h5file = h5py.File(open(snapshotfiles[snapid],"rb"),"r")
         nsteps = len(h5file)
 
@@ -802,10 +787,6 @@ def next_step_finder(stepid,snapshotfiles,verbose=False,data = None):
             for group in [ just_found]: 
                 order = numpy.argsort(sids[group])
                 found_data.append(idata.data,group,order)
-                # found_tstep = numpy.concatenate([
-                        # found_tstep,
-                        # numpy.full_like(sids[group],tstep)
-                        # ])
             found_ids = found_data.data["NAM"]
 
             if verbose:
@@ -836,11 +817,9 @@ def next_step_finder(stepid,snapshotfiles,verbose=False,data = None):
     dataout = Data()
     dataout.append( found_data.data,found,ifound )
     dataout.append( found_data.data,new,inew )
-    # found_tstep = numpy.concatenate([found_tstep[found][ifound],
-                                            # found_tstep[new][inew]
     return tstep,data,dataout
 
-def backward_finder(stepid,snapshotfiles,verbose=False):
+def backward_finder(stepid,snapshotfiles,verbose=False,tback = 1):
     """
     Helper for H5nb6xxSnapshot object.
     Read the current stored data in stepid and their next occurrence,
@@ -852,12 +831,11 @@ def backward_finder(stepid,snapshotfiles,verbose=False):
     -----
     snapshotfiles : sorted list of hdf5 files 
     stepid : stepid of first item of snapshot files.
+    tback : maximun time to look back
     
     Output
     -----
-    data0 : data at stepid on first snapshot
-    data  : data containing next occurence of particles stored in data.
-            data.data[ len(data0)::] contains new particles found on the way
+    data  : All found particles last ocurrence
     """
 
     data = Data()
@@ -908,7 +886,7 @@ def backward_finder(stepid,snapshotfiles,verbose=False):
                     print("%d stars found at time = %.3g                   "%(
                             Nfound,ctime) )
                     break
-                if abs(ctime - tstep0) > 1 :
+                if abs(ctime - tstep0) > tback :
                     done = True
                     print("Warning: Not all particles were found")
                     break

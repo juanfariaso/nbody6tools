@@ -15,11 +15,11 @@ nbody6tools/Datamodel/BTSreader.py:145:            #TODO: BTS: Find out why some
 nbody6tools/Datamodel/BTSreader.py:272:        #TODO: as_particle_set: add a density center. Using center of mass 
 nbody6tools/Datamodel/BTSreader.py:282:        stars_dict["pot"] = self.data["POT"] #TODO: check that POT have right units
 nbody6tools/Datamodel/BTSreader.py:283:        stars_dict["epot"] = self.data["POT"]*0.0 #TODO: add epot to Data
-nbody6tools/Datamodel/BTSreader.py:331:        #TODO: H5nb6xxSnapshot: protect internal variables from evil user
-nbody6tools/Datamodel/BTSreader.py:447:        # TODO: (check) that Buffer daemon really do all the reading and remove all reading functions from BTS class
-nbody6tools/Datamodel/BTSreader.py:547:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
-nbody6tools/Datamodel/BTSreader.py:619:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
-nbody6tools/Datamodel/BTSreader.py:827:# TODO: Add debug mode to avoid unnessesary sorting
+nbody6tools/Datamodel/BTSreader.py:332:        #TODO: H5nb6xxSnapshot: protect internal variables from evil user
+nbody6tools/Datamodel/BTSreader.py:443:        # TODO: (check) that Buffer daemon really do all the reading and remove all reading functions from BTS class
+nbody6tools/Datamodel/BTSreader.py:540:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
+nbody6tools/Datamodel/BTSreader.py:608:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
+nbody6tools/Datamodel/BTSreader.py:808:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/_ParticleMethods.py:26:        #epot = self.x*0.0 # background potential #TODO implement
 nbody6tools/Datamodel/__init__.py:17:    # TODO : this function should be a well defined object able to write and
 nbody6tools/Datamodel/__init__.py:151:    # TODO: Update Snapshot class documentation
