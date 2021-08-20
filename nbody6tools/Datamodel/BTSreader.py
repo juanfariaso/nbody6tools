@@ -547,7 +547,7 @@ class H5nb6xxSnapshot(object):
         if (self.delta_t ==0).sum() > 0 : 
             print("Warning: delta_t = 0 found")
             tau[self.delta_t==0] = 0
-            dt[self.delta_t]==0] = 0
+            dt[self.delta_t==0] = 0
 
         dataset_interp = ['X1', 'X2', 'X3']
         vel = ['V1', 'V2', 'V3']
