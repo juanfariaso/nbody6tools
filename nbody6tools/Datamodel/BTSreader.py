@@ -541,8 +541,13 @@ class H5nb6xxSnapshot(object):
         to_time = self.current_time if to_time is None else to_time
         self.time = to_time 
         dt = to_time - self.data["Time"]  #self.step_vec
-        tau = dt / self.delta_t
         dt[dt<0] = 0
+        tau = dt / self.delta_t
+        #quick fix: some stars have been found with dt=0. TODO find out why
+        if (self.delta_t ==0).sum() > 0 : 
+            print("Warning: delta_t = 0 found")
+            tau[self.delta_t==0] = 0
+            dt[self.delta_t]==0] = 0
 
         dataset_interp = ['X1', 'X2', 'X3']
         vel = ['V1', 'V2', 'V3']
