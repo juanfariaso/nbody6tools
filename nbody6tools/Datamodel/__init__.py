@@ -320,21 +320,28 @@ class Snapshot(object):
             Rcl = self.inputfile["AP"]
             if particles.physical:
                 Rcl*=self.parameters["rbar"]
-            GMR = -self.external_potential_at_point([0],[0],[Rcl],
+            GMR = self.external_potential_at_point([0],[0],[Rcl],
                                                    physical=particles.physical
                                                    )[0]
             r = numpy.sqrt(particles.x**2 + particles.y**2 + particles.z**2)
 
             mask = r<=Rcl 
-            K = (3.0-krho) / (2.-krho)
-            result+=numpy.nansum( (2.0-krho) / (5.-2.*krho) *(
-                    (particles.epot+K*GMR)*particles.mass
-                    )[mask]
-                    )
+            # K = (3.0-krho) / (2.-krho)
+            # result+=numpy.nansum( (2.0-krho) / (5.-2.*krho) *(
+                    # (particles.epot+K*GMR)*particles.mass
+                    # )[mask]
+                    # )
+            #result += numpy.nansum( (GMR*(krho-3)*particles.mass[mask] - 
+            #         (2.0 - krho)*particles.epot[mask]*particles.mass[mask]
+            #         ))  
+            result += numpy.nansum(
+                  #-GMR*(r[mask]/Rcl)**(2.0-krho)*particles.mass[mask]
+                  -GMR*(r[mask]/Rcl)**(2.0-krho*0.5)*particles.mass[mask]
+                  )
 
-            mask = r>Rcl 
-            result += -numpy.nansum( (particles.epot*particles.mass)[mask]
-                    )
+            mask = r>=Rcl 
+            #result += numpy.nansum( -(particles.epot*particles.mass)[mask] )
+            result += numpy.nansum( -(particles.epot*particles.mass)[mask] )
 
         return result
 
@@ -437,6 +444,9 @@ class Snapshot(object):
         stars_dict["vy"] = X[1,:]
         stars_dict["vz"] = X[2,:]
         stars_dict["pot"] = record[6]
+        if self.inputfile["KZ"][50] == 1:
+            stars0 = (stars_dict["name"] <= 150) & (stars_dict["name"] > 0)
+            self.__mgas0 = self.inputfile["MP"]-stars_dict["mass"][stars0].sum()
         stars_dict["epot"] = self.external_potential_at_point(X[0,:],X[1,:],X[2,:])
         if self.inputfile["KZ"][50] ==1 :
             stars_dict["kstar"] = record[8]
@@ -469,7 +479,10 @@ class Snapshot(object):
 
         G = 1.0
         if "MP" in self.inputfile.keys():
-            Mgas = self.inputfile["MP"] - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
+            mp = self.inputfile["MP"]
+            if self.inputfile["KZ"][50]==1 :
+                mp = self.__mgas0 
+            Mgas = mp - self.inputfile["MPDOT"]*(self.parameters["time"] - self.inputfile["TDELAY"] )
             Rcore = self.inputfile["AP"]
             if physical : 
                 Mgas *= self.parameters["zmbar"]
@@ -477,16 +490,16 @@ class Snapshot(object):
                 G = 4.3020077853E-3
             if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
                 #truncated power law potential
+                #print(self.parameters["time"],Mgas,end="\n")
                 r = numpy.sqrt(x**2 + y**2 + z**2 ) 
                 krho = self.inputfile["KRHO"]
                 #result = - G*Mgas*(r/Rcore)**(3.0 - self.inputfile["KRHO"] )/r
                 result = G*Mgas*((r/Rcore)**(2-krho) - 3.0 + krho)/Rcore/(2-krho)
-                result[ r > Rcore ] = - G * Mgas / r[r > Rcore]
+                result[ r >= Rcore ] = - G * Mgas / r[r >= Rcore]
             else:
                 result = x*0.0
         else:
             result = x*0.0
-
         return result
 
     def resolve_set_old(self, unresolved_set ):
@@ -533,8 +546,8 @@ class Snapshot(object):
         -------
         >> sn = Snapshot(folder,input)
         >> single,primary,secondary = sn.resolve_set(sn.stars,split_set=True)
-        >> bin_sep = numpy.sqrt((primary.x - secondary.x)**2 \
-                             +  (primary.y - secondary.y)**2 \
+        >> bin_sep = numpy.sqrt((primary.x - secondary.x)**2 
+                             +  (primary.y - secondary.y)**2 
                              +  (primary.z - secondary.z)**2
                                )
         Note: if resolved_particles is already resolved, primary and secondary
@@ -545,13 +558,18 @@ class Snapshot(object):
 
         main_indexes = numpy.arange(len(self.stars))
         iprim = main_indexes[numpy.isin(self.stars.name,primary_names)]
-        ising =  main_indexes[ numpy.isin(self.stars.name,singles_names) ]
+        ising =  main_indexes[numpy.isin(self.stars.name,singles_names) ]
 
         if not split_set:
             iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),
                                        ising])
             return self.stars[iall]
         else:
+            #print(primary_names)
+            #print(main_indexes)
+            print(singles_names)
+            print(ising)
+            print(iprim)
             return self.stars[ising], self.stars[iprim], self.stars[iprim+1]
 
     def to_physical(self):

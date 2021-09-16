@@ -24,14 +24,14 @@ nbody6tools/Datamodel/_ParticleMethods.py:26:        #epot = self.x*0.0 # backgr
 nbody6tools/Datamodel/__init__.py:17:    # TODO : this function should be a well defined object able to write and
 nbody6tools/Datamodel/__init__.py:151:    # TODO: Update Snapshot class documentation
 nbody6tools/Datamodel/__init__.py:315:        TODO: Update and add other backgrounds
-nbody6tools/Datamodel/__init__.py:478:            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
-nbody6tools/Datamodel/__init__.py:590:#TODO (check): Snaphsot.reorder should not be needed anymore 
-nbody6tools/Datamodel/__init__.py:599:#TODO : Check Snapshot.unrsolve_all is still necessary
-nbody6tools/Datamodel/__init__.py:628:#TODO: handle multiple systems
-nbody6tools/Datamodel/__init__.py:638:        #TODO:  improve this, must be a better way
-nbody6tools/Datamodel/__init__.py:653:        #TODO: add check that pairs are correct
-nbody6tools/Datamodel/__init__.py:655:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
-nbody6tools/Datamodel/__init__.py:876:        #TODO Format string representation of Particle Class
+nbody6tools/Datamodel/__init__.py:491:            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
+nbody6tools/Datamodel/__init__.py:603:#TODO (check): Snaphsot.reorder should not be needed anymore 
+nbody6tools/Datamodel/__init__.py:612:#TODO : Check Snapshot.unrsolve_all is still necessary
+nbody6tools/Datamodel/__init__.py:641:#TODO: handle multiple systems
+nbody6tools/Datamodel/__init__.py:651:        #TODO:  improve this, must be a better way
+nbody6tools/Datamodel/__init__.py:666:        #TODO: add check that pairs are correct
+nbody6tools/Datamodel/__init__.py:668:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
+nbody6tools/Datamodel/__init__.py:889:        #TODO Format string representation of Particle Class
 nbody6tools/scripts/nbt-movie:107:    #TODO make this line optional
 nbody6tools/scripts/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
 nbody6tools/ext/src/Qpar.f90:3:      ! TODO: Find out and put the proper credits here.
