@@ -89,10 +89,13 @@ def parse_inputfile(inputfilename):
     if (KZ[14] == 3 or KZ[14]==4):
         parseline(inputfile.readline(),result,
             ["MP","AP","MPDOT","TDELAY"],[float]*4)
-    if KZ[14] == 5 :
+    if KZ[14] == 5 : #power law potential
         parseline(inputfile.readline(),result,
             ["KRHO", "MP", "AP", "MPDOT", "TDELAY", "BGSCALE"],[float]*5+[int])
 
+    if KZ[48] == 1: # PPDISKs models
+        parseline(inputfile.readline(),result,
+                ["PPDP","PPDTAU","PPDR0"],[float]*3 )
     return result
 
 def get_binaries_from_files(hardfile,widefile):
@@ -362,7 +365,7 @@ class Snapshot(object):
       kz = self.inputfile["KZ"]
       NTOT,MODEL,NDRUN,NK = tuple(self.__recordfile.read_ints(dtype=inttype))
       self._ntot = NTOT
-      if not kz[50] == 1 : 
+      if  kz[50] == 0 and kz[48] == 0 : 
          record = self.__recordfile.read_record(
                  numpy.dtype( (floattype,NK)   ) #AS
                 ,numpy.dtype( (floattype,NTOT) ) #bodys
@@ -373,7 +376,7 @@ class Snapshot(object):
                 ,numpy.dtype( (floattype,NTOT  ) )#phi
                 ,numpy.dtype( (inttype  ,NTOT) ) #name
               )
-      if kz[50] == 1 : 
+      if kz[50] == 1 and kz[48]==0: 
          record = self.__recordfile.read_record(
                  numpy.dtype( (floattype,NK)   ) #AS
                 ,numpy.dtype( (floattype,NTOT) ) #bodys
@@ -385,6 +388,34 @@ class Snapshot(object):
                 ,numpy.dtype( (inttype,NTOT) ) #name
                 ,numpy.dtype( (inttype,NTOT) ) #kstar
               )
+      elif kz[50] == 1 and kz[48] == 1: 
+         record = self.__recordfile.read_record(
+                 numpy.dtype( (floattype,NK)   ) #AS
+                ,numpy.dtype( (floattype,NTOT) ) #bodys
+                ,numpy.dtype( (floattype,NTOT) ) #rhos
+                ,numpy.dtype( (floattype,NTOT) ) #xns
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#x
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#v
+                ,numpy.dtype( (floattype,NTOT  ) )#phi
+                ,numpy.dtype( (inttype,NTOT) ) #name
+                ,numpy.dtype( (inttype,NTOT) ) #kstar
+                ,numpy.dtype( (floattype,NTOT) ) #ppdm
+                ,numpy.dtype( (floattype,NTOT) ) #ppdr
+              )
+      elif kz[50] == 0 and kz[48] == 1: 
+         record = self.__recordfile.read_record(
+                 numpy.dtype( (floattype,NK)   ) #AS
+                ,numpy.dtype( (floattype,NTOT) ) #bodys
+                ,numpy.dtype( (floattype,NTOT) ) #rhos
+                ,numpy.dtype( (floattype,NTOT) ) #xns
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#x
+                ,numpy.dtype( (floattype,(NTOT*3) ) )#v
+                ,numpy.dtype( (floattype,NTOT  ) )#phi
+                ,numpy.dtype( (inttype,NTOT) ) #name
+                ,numpy.dtype( (floattype,NTOT) ) #ppdm
+                ,numpy.dtype( (floattype,NTOT) ) #ppdr
+              )
+
       return record
 
     def __read_snapshot(self):
@@ -452,6 +483,11 @@ class Snapshot(object):
             stars_dict["kstar"] = record[8]
         else:
             stars_dict["kstar"] = stars_dict["name"] * 0 - 999 #not known
+
+        if self.inputfile["KZ"][48] == 1:
+            ppdi = 9 if self.inputfile["KZ"][50] == 1 else 8
+            stars_dict["Mdisk"] = record[ppdi]
+            stars_dict["Rdisk"] = record[ppdi+1]
 
         allparticles =  Particles(stars_dict,center=self.parameters["rdens"])
         allparticles.I = numpy.arange(1,self.ntot+1,1)

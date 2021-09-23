@@ -2,11 +2,6 @@ build/scripts.linux-x86_64-2.7/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-2.7/nbt-movie:295:    cdens = rho.sum(axis=2).T #TODO: Able to choose projection
 build/scripts.linux-x86_64-3.6/nbt-movie:107:    #TODO make this line optional
 build/scripts.linux-x86_64-3.6/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
-nbody6tools/Datamodel/BTSreader_update.py:63:            #TODO: This must be fixed. Calculate the right potential for each member
-nbody6tools/Datamodel/BTSreader_update.py:86:    # TODO: Implement mergers in BTSreader
-nbody6tools/Datamodel/BTSreader_update.py:440:# TODO: Add warning and option in BTS interpolation for when accel and derivatives are found
-nbody6tools/Datamodel/BTSreader_update.py:511:#TODO: BufferDaemon need to be closed Explicitly!. Should be automatic
-nbody6tools/Datamodel/BTSreader_update.py:715:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/BTSreader.py:61:            #TODO: This must be fixed. Calculate the right potential for each member
 nbody6tools/Datamodel/BTSreader.py:71:    # TODO: Implement mergers in BTSreader
 nbody6tools/Datamodel/BTSreader.py:113:            #TODO: This must be fixed. Calculate the right potential for each member
@@ -22,16 +17,16 @@ nbody6tools/Datamodel/BTSreader.py:613:#TODO: BufferDaemon need to be closed Exp
 nbody6tools/Datamodel/BTSreader.py:813:# TODO: Add debug mode to avoid unnessesary sorting
 nbody6tools/Datamodel/_ParticleMethods.py:26:        #epot = self.x*0.0 # background potential #TODO implement
 nbody6tools/Datamodel/__init__.py:17:    # TODO : this function should be a well defined object able to write and
-nbody6tools/Datamodel/__init__.py:151:    # TODO: Update Snapshot class documentation
-nbody6tools/Datamodel/__init__.py:315:        TODO: Update and add other backgrounds
-nbody6tools/Datamodel/__init__.py:491:            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
-nbody6tools/Datamodel/__init__.py:603:#TODO (check): Snaphsot.reorder should not be needed anymore 
-nbody6tools/Datamodel/__init__.py:612:#TODO : Check Snapshot.unrsolve_all is still necessary
-nbody6tools/Datamodel/__init__.py:641:#TODO: handle multiple systems
-nbody6tools/Datamodel/__init__.py:651:        #TODO:  improve this, must be a better way
-nbody6tools/Datamodel/__init__.py:666:        #TODO: add check that pairs are correct
-nbody6tools/Datamodel/__init__.py:668:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
-nbody6tools/Datamodel/__init__.py:889:        #TODO Format string representation of Particle Class
+nbody6tools/Datamodel/__init__.py:154:    # TODO: Update Snapshot class documentation
+nbody6tools/Datamodel/__init__.py:318:        TODO: Update and add other backgrounds
+nbody6tools/Datamodel/__init__.py:527:            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
+nbody6tools/Datamodel/__init__.py:639:#TODO (check): Snaphsot.reorder should not be needed anymore 
+nbody6tools/Datamodel/__init__.py:648:#TODO : Check Snapshot.unrsolve_all is still necessary
+nbody6tools/Datamodel/__init__.py:677:#TODO: handle multiple systems
+nbody6tools/Datamodel/__init__.py:687:        #TODO:  improve this, must be a better way
+nbody6tools/Datamodel/__init__.py:702:        #TODO: add check that pairs are correct
+nbody6tools/Datamodel/__init__.py:704:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
+nbody6tools/Datamodel/__init__.py:925:        #TODO Format string representation of Particle Class
 nbody6tools/scripts/nbt-movie:107:    #TODO make this line optional
 nbody6tools/scripts/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
 nbody6tools/ext/src/Qpar.f90:3:      ! TODO: Find out and put the proper credits here.
