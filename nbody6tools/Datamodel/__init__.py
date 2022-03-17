@@ -735,7 +735,7 @@ class Particles(Methods):
     This object is not supposed to be used by itself, but
     wrapped by the Snapshot object.
     """
-    def __init__(self,stars_dict,center=[0.,0.,0.],
+    def __init__(self,stars_dict,center=[0.,0.,0.],center_velocity = [0,0,0],
                  physical = False):
         self.__n = len(stars_dict["name"])  if hasattr(stars_dict["name"],"__len__" ) else 1  #must be first parameter to be setted
         self.__data = stars_dict
@@ -749,7 +749,7 @@ class Particles(Methods):
         self.__sanity_check()
         self.__index = 0
         self.__center = numpy.array(center)
-        self.__center_velocity = numpy.array([0.,0.,0.])
+        self.__center_velocity = numpy.array(center_velocity)
         self.__r = None
         self.__v = None
 
@@ -851,7 +851,7 @@ class Particles(Methods):
         self.__center_velocity -= center_velocity
 
     def set_center(self,center):
-        print("setting center",center)
+        #print("setting center",center)
         if len(center) == 3:
             self.__center = numpy.array(center,dtype=numpy.float32)
             self.__r = None #need to be recalulated
