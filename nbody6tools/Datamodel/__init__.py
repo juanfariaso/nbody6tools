@@ -8,6 +8,7 @@ from scipy.io import FortranFile
 import numpy
 
 from ._ParticleMethods import Methods
+import Interpolators
 
 def parse_inputfile(inputfilename):
     """
@@ -163,7 +164,7 @@ class Snapshot(object):
         self.__parameters = dict()
         self._physical = False
         self.__read_snapshot()
-
+        self.__orbit = None
 
     @property
     def parameters(self):
@@ -942,3 +943,5 @@ class Particle(object):
         return "Particle Object: %s "% str(self.__data)
     def __repr__(self):
         return "Particle Object: %s "% str(self.__data)
+
+print(Interpolators.__dict__)
