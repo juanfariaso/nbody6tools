@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 class ClusterOrbitInterpolator():
     def __init__(self,folder,outputfile = None):
         self.folder = folder
-        self.outputfile = self.__setup_output_file(outputfile)
+        self.outputfile =  self.__setup_output_file(outputfile)
         self.__interpolators = dict()
         self.__setup_data()
         self.__output_times = None
@@ -18,7 +18,7 @@ class ClusterOrbitInterpolator():
             possible_output = ['output','output.txt','out.txt','out']
             for out in possible_output:
                 if os.path.isfile("/".join([self.folder,out]) ) :
-                    outputfile = out
+                    outputfile = "/".join([self.folder,out] )
                     break
                 else:
                     continue
@@ -45,8 +45,8 @@ class ClusterOrbitInterpolator():
         return self.columns.keys()
 
     def __setup_interpolator(self,key):
-        self.__interpolators[key] = interp1d(self.data[0,:],
-                self.data[self.columns[key],:] )
+        self.__interpolators[key] = interp1d(self.data[:,0],
+                self.data[:,self.columns[key]] )
 
 
     @property

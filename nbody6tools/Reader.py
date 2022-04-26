@@ -1,5 +1,6 @@
 import nbody6tools
 from nbody6tools import Datamodel
+from nbody6tools.Datamodel import Interpolators
 import numpy
 import os
 import glob
@@ -103,6 +104,6 @@ def read_binaries(folder,snapshot=0,inputfilename=inputFile):
 
     return Datamodel.get_binaries_from_files(hardfile,widefile)
 
-def get_orbit_interpolator(folder,outputfile):
-    return Datamodel.ClusterOrbitInterpolator(folder = folder, 
+def get_orbit_interpolator(folder,outputfile = None):
+    return Interpolators.ClusterOrbitInterpolator(folder = folder, 
                                               outputfile = outputfile)

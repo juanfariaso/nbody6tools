@@ -7,7 +7,8 @@ from matplotlib import pyplot
 from matplotlib import animation
 import numpy
 from nbody6tools.Reader import (read_snapshot,get_number_of_snapshots,
-                                parse_inputfile,Options,get_globals )
+                                parse_inputfile,Options,get_globals,
+                                get_orbit_interpolator,get_times)
 
 def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_bound=False,**kw):
     """
@@ -19,8 +20,8 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     ##      - make it look better, but make sure is fast.
     print("showbound",show_bound)
 
-    def update_line(num,line,bline,folder,sn0=None):
-
+    def update_line(num,line,bline,cline,folder,title=None,sn0=None):
+            orbit = None
             if sn0 is None:
                 sn = read_snapshot(folder,num)
             else:
@@ -30,8 +31,19 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
 
             sn.to_physical()
 
-            x = sn.stars[xy[0]]
-            y = sn.stars[xy[1]]
+            if sn.inputfile['KZ'][16] <= 3:
+                if orbit is None:
+                    orbit = get_orbit_interpolator(folder)
+                #orbit.times = sn.time + 0.000001
+                orbit.times = numpy.linspace(0.00001,sn.time,1000)
+                xg,yg,zg = orbit.RG
+            else: 
+                xg,yg,zg = numpy.array([0,0,0])
+            XG = dict(x = xg, y = yg, z = zg)
+            #print(XG[xy[0]] - XG[xy[0]][-1])
+
+            x = sn.stars[xy[0]] 
+            y = sn.stars[xy[1]] 
             s = sn.stars["mass"]/1
             line.set_offsets(numpy.c_[x,y])
             line.set_sizes(s)
@@ -41,18 +53,33 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
                 yb = bound_set[xy[1]]
                 bline.set_offsets(numpy.c_[xb,yb])
                 bline.set_sizes(s)
+            cline.set_xdata( XG[xy[0]] - XG[xy[0]][-1] )
+            cline.set_ydata( XG[xy[1]] - XG[xy[1]][-1] )
             print("snapshot: ", num, sn.time) #TODO: Put nice progress info
             #title.set_text('Time %.2f Myr'%(sn.parameters["time"]*sn.parameters["tscale"] ) )
-            return line,bline
+            return line,bline,cline
     opt = parse_inputfile(folder+"input")
     nsnap = get_number_of_snapshots(folder)
     if Options.has_section("CONFIG"):
         sn0 = read_snapshot(folder,0) if Options.getboolean("CONFIG","singleFile") else None
     else:
         sn0 = None
+
+    O = None
+    if sn0 is not None:
+        if sn0.inputfile['KZ'][16] <= 3:
+                O = get_orbit_interpolator(folder)
+                O.times = get_times('./') 
+                xg,yg,zg = O.RG
+                XG = dict(x = xg, y = yg, z = zg)
+
     fig1 = pyplot.gcf()
     l = pyplot.scatter([],[],[],c="k",alpha=0.8)
     bl = pyplot.scatter([],[],[],c="r",alpha=0.8)
+    if O is not None:
+        pyplot.plot( XG ,c='c',zorder=-1 )
+
+    CG,  = pyplot.plot([],[],c='c',zorder=-1)
     if boxsize is None:
         size = 10*opt["RBAR"]
     else:
@@ -64,7 +91,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     ax = pyplot.gca()
     ax.set_aspect("equal")
     #title = ax.set_title("Time : %.2f"%0.0) #not working
-    movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,bl,folder,sn0),
+    movie = animation.FuncAnimation(fig1, update_line, nsnap, fargs=(l,bl,CG,folder,sn0),
                                        interval=10, blit=True)
     if output is None :
         pyplot.show()
