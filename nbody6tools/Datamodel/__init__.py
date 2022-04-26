@@ -8,7 +8,6 @@ from scipy.io import FortranFile
 import numpy
 
 from ._ParticleMethods import Methods
-import Interpolators
 
 def parse_inputfile(inputfilename):
     """
@@ -926,6 +925,46 @@ class Particles(Methods):
         #TODO Format string representation of Particle Class
         return str(self.__data)
 
+    def __add__(self, otherParticles ):
+        assert self.physical == otherParticles.physical,(
+                'Particles must be on the same unit system')
+        other = otherParticles.copy()
+        assert type(self) == type(other),(
+                'only Particles and Particles are supported for __add__')
+        otherdict = other.__dict__[ '_Particles__data' ] 
+                 
+        assert self.__data.keys() == otherdict.keys() ,(
+                'Particles must have the same properties')
+        result_dict = dict()
+        assert numpy.isin(self.name,otherParticles.name).sum() == 0, (
+                'Added particles contain repeated members')
+
+        for key in self.__data.keys():
+            result_dict[key] = numpy.concatenate([
+                self.__data[key],
+                otherdict[key] 
+                ])
+
+        if 'mass' in self.__data.keys():
+            m1 = self.mass.sum()
+            m2 = otherParticles.mass.sum()
+        else :
+            m1 = len(self)
+            m2 = len(otherParticles)
+        center = (m1*self.center + m2*otherParticles.center)/(m1+m2)
+        center_v = (m1*self.center_velocity + 
+                    m2*otherParticles.center_velocity)/(m1+m2)
+        
+        result = Particles(result_dict,center = center, 
+                           center_velocity=center_v,physical=self.physical)
+
+        return result
+
+
+            
+
+        
+
 
     def available_attributes(self):
         return list(self.__data.keys() )
@@ -944,4 +983,3 @@ class Particle(object):
     def __repr__(self):
         return "Particle Object: %s "% str(self.__data)
 
-print(Interpolators.__dict__)
