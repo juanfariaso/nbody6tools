@@ -8,6 +8,7 @@ from scipy.io import FortranFile
 import numpy
 
 from ._ParticleMethods import Methods
+#from .Interpolators import ClusterOrbitInterpolator
 
 def parse_inputfile(inputfilename):
     """
@@ -601,11 +602,6 @@ class Snapshot(object):
                                        ising])
             return self.stars[iall]
         else:
-            #print(primary_names)
-            #print(main_indexes)
-            print(singles_names)
-            print(ising)
-            print(iprim)
             return self.stars[ising], self.stars[iprim], self.stars[iprim+1]
 
     def to_physical(self):
@@ -960,12 +956,6 @@ class Particles(Methods):
 
         return result
 
-
-            
-
-        
-
-
     def available_attributes(self):
         return list(self.__data.keys() )
 
@@ -974,7 +964,7 @@ class Particle(object):
         for key in star_dict:
             setattr(self,key,star_dict[key])
         self.__data = star_dict
-        self.__physical
+        self.__physical = True if physical == 1 else False
     @property
     def physical(self):
         return self.__physical

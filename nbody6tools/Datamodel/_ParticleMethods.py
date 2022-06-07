@@ -1,6 +1,6 @@
 import numpy
 from nbody6tools import Utilities
-from nbody6tools.snowballing import snowballing_method
+#from nbody6tools.snowballing import snowballing_method
 
 
 class Methods():
@@ -17,21 +17,21 @@ class Methods():
         return Utilities.get_mass_radius(self,fraction=fraction,
                                          direction=direction)
 
-    def bound_indexes(self,verbose = False):
-        """ 
-        Return bound positions using the snowballing method. Only works if
-        stars are in physical units
-        """
-        G = 4.3020077853E-3 if self.physical else 1
-        #epot = self.x*0.0 # background potential #TODO implement
-        parts=numpy.array([self.x,self.y,self.z,self.vx,self.vy,self.vz,
-                           self.mass,self.epot],dtype=numpy.float64) 
-                           #must be float64
-        rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64)
-        #should be use center of density. Maybe initialize this value at start
-        clumps =  numpy.array(self.center,dtype=numpy.float64)  
-        cl_flags=snowballing_method(parts,clumps,rcores,verbose,G) 
-        return numpy.array(cl_flags[0],  dtype=bool )
+#    def bound_indexes(self,verbose = False):
+#        """ 
+#        Return bound positions using the snowballing method. Only works if
+#        stars are in physical units
+#        """
+#        G = 4.3020077853E-3 if self.physical else 1
+#        #epot = self.x*0.0 # background potential #TODO implement
+#        parts=numpy.array([self.x,self.y,self.z,self.vx,self.vy,self.vz,
+#                           self.mass,self.epot],dtype=numpy.float64) 
+#                           #must be float64
+#        rcores = numpy.array([ 2*self.half_mass_radius() ],dtype=numpy.float64)
+#        #should be use center of density. Maybe initialize this value at start
+#        clumps =  numpy.array(self.center,dtype=numpy.float64)  
+#        cl_flags=snowballing_method(parts,clumps,rcores,verbose,G) 
+#        return numpy.array(cl_flags[0],  dtype=bool )
 
     def bound_subset(self,verbose = False,gravitational_constant=1):
         """ Returns a bound subset of particles using the snowballing method"""

@@ -63,8 +63,9 @@ def get_times(folder,nbody=False,inputfilename=inputFile):
 def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile=singleFile,
         snapshotfile = snapshotFile):
     if time is not None:
-        times = get_times(folder)
-        snapshot = numpy.where( times >= time )[0][0]
+        times = numpy.array(get_times(folder))
+        snapshot = numpy.argmin( abs( times - time) )
+        #snapshot = numpy.where( times >= time )[0][0]
 
     inputfile ="%s/%s"%(folder,inputfilename)
 

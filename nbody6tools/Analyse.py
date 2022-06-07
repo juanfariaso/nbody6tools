@@ -1,5 +1,5 @@
 from nbody6tools.Reader import read_snapshot,get_number_of_snapshots
-from nbody6tools.ext import qparameter
+#from nbody6tools.ext import qparameter
 from nbody6tools import Utilities
 from nbody6tools.Datamodel import get_binaries_from_files
 import sys
@@ -172,26 +172,26 @@ def compute_multithread(folders,function,**kw):
     pbar = tqdm("Completed Files:")
 
 
-def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.7,**args):
-    """ 
-    Calculate the Q parameter (##add ref).
-    extra arguments:
-    average : if 1 average the three projections. Default: 1
-    zeroaxis: if average=0, will set the axis which position will be taken as zero. keys are: 1-> x ; 2-> y, 3-> z
-    rmax    : Mass fraction radius to use as maximum. Default : 0.9
-    
-    returns "mean Qparameter","standard error of mean", current rmax
-    """
-    #snapshot.to_physical() #unnesessary
-    stars = snapshot.unresolved_stars
-    rmax = Utilities.get_mass_radius(stars,rmax)
-    x = stars["x"]
-    y = stars["y"]
-    z = stars["z"]
-    r = numpy.sqrt(x**2+y**2+z**2)
-    mask =  r < rmax
-    result = qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
-    return result[0],result[1],rmax
+#def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.7,**args):
+#    """ 
+#    Calculate the Q parameter (##add ref).
+#    extra arguments:
+#    average : if 1 average the three projections. Default: 1
+#    zeroaxis: if average=0, will set the axis which position will be taken as zero. keys are: 1-> x ; 2-> y, 3-> z
+#    rmax    : Mass fraction radius to use as maximum. Default : 0.9
+#    
+#    returns "mean Qparameter","standard error of mean", current rmax
+#    """
+#    #snapshot.to_physical() #unnesessary
+#    stars = snapshot.unresolved_stars
+#    rmax = Utilities.get_mass_radius(stars,rmax)
+#    x = stars["x"]
+#    y = stars["y"]
+#    z = stars["z"]
+#    r = numpy.sqrt(x**2+y**2+z**2)
+#    mask =  r < rmax
+#    result = qparameter(x[mask],y[mask],z[mask],int(average),int(zeroaxis),rmax)
+#    return result[0],result[1],rmax
 
 def lrad(snapshot,mfrac = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,1.0],**args) :
     """

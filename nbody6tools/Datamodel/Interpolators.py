@@ -71,11 +71,15 @@ class ClusterOrbitInterpolator():
 
 
         '''
-        result = [ ]
+        return self.RG_at_time(self.__output_times)
+
+
+    def RG_at_time(self,t):
+        result = []
         for rg in ['RGX','RGY','RGZ']:
             if self.__interpolators[rg] is None:
                 self.__setup_interpolator(rg)
-            result.append( self.__interpolators[rg](self.__output_times) )
+            result.append( self.__interpolators[rg](t) )
 
         return numpy.array(result)*1000 #to pc
             
@@ -88,14 +92,16 @@ class ClusterOrbitInterpolator():
             > orbit.times = [ 1,2,3,4,5]
             > vx,vy,vz =  orbit.VG
         '''
+        self.VG_at_time(self.__output_times)
+
+    def VG_at_time(self,t):
         result = [ ]
         for vg in ['VGX','VGY','VGZ']:
             if self.__interpolators[vg] is None:
                 self.__setup_interpolator(vg)
-            result.append( self.__interpolators[vg](self.__output_times) )
+            result.append( self.__interpolators[vg](t) )
 
         return numpy.array(result) #km/s
-
 
     @property
     def JZ(self):
@@ -104,6 +110,9 @@ class ClusterOrbitInterpolator():
            self.__setup_interpolator('JZ')
         result = self.__interpolators['JZ'](self.__output_times) 
         return result
+
+    def JZ_at_time(self,t):
+        return self.__interpolators['JZ'](t)
 
     @property
     def ET(self):
