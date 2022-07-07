@@ -31,14 +31,14 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
 
             sn.to_physical()
 
-            if sn.inputfile['KZ'][16] <= 3:
+            if 0 < sn.inputfile['KZ'][14] <= 3 :
                 if orbit is None:
                     orbit = get_orbit_interpolator(folder)
                 #orbit.times = sn.time + 0.000001
                 orbit.times = numpy.linspace(0.00001,sn.time,1000)
                 xg,yg,zg = orbit.RG
             else: 
-                xg,yg,zg = numpy.array([0,0,0])
+                xg,yg,zg = numpy.array([[0],[0],[0]])
             XG = dict(x = xg, y = yg, z = zg)
             #print(XG[xy[0]] - XG[xy[0]][-1])
 
