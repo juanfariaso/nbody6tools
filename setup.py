@@ -7,8 +7,8 @@ with open("README.md", "r") as fh:
      long_description = fh.read()
 
 #extensions = [ setuptools.Extension("Qparameter",["Qpar.f90"])]
-from numpy.distutils.core import Extension
-from numpy.distutils.core import setup
+#from numpy.distutils.core import Extension
+#from numpy.distutils.core import setup
 
 #ext = Extension(name = 'nbody6tools.ext',
 #                 extra_compile_args = ['-O3'],
@@ -18,7 +18,7 @@ from numpy.distutils.core import setup
 #                 sources = ['nbody6tools/ext/src/snowballing.f','nbody6tools/ext/src/snowballing.pyf'], # you may add several modules files under the same extension
                  #)
 
-dependencies = ["scipy>=1.2"]
+dependencies = ["scipy","h5py","matplotlib","tqdm"]
 
 setup(
      name='nbody6tools',  
