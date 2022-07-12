@@ -73,18 +73,21 @@ def compute(folders,function,args=None,output=None,overwrite=False,
 
     kwargs = dict()
     if args is not None:
-        for s in args:
-            k,v=s.split("=")
-            try :
-                if "," in v:
-                    #list case
-                    kwargs[k] = [float(val) for val in v.split(",")]
-                else:
-                    #single float case
-                    kwargs[k] = float(v)
-            except ValueError:
-                raise ValueError("arg can only be a float or "
-                                 "comma separated floats")
+        if type(args) == str:
+            for s in args:
+                k,v=s.split("=")
+                try :
+                    if "," in v:
+                        #list case
+                        kwargs[k] = [float(val) for val in v.split(",")]
+                    else:
+                        #single float case
+                        kwargs[k] = float(v)
+                except ValueError:
+                    raise ValueError("arg can only be a float or "
+                                     "comma separated floats")
+        else :
+            kwargs = args
 
     for folder in folders:
         nbad = 0 
@@ -98,7 +101,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
         else:
             outputfile = output
 
-        print(outputfile)
+        #print(outputfile)
         mode = "w" if overwrite else "x"
         try:
             resultfile =  open(outputfile,mode,1)   #fail if already exists for safety
@@ -146,7 +149,7 @@ def compute(folders,function,args=None,output=None,overwrite=False,
                     continue
             if hasattr(fout,"__len__") :
                 nresult = len(fout)
-            print(str(fout)+"\r")
+            #print(str(fout)+"\r")
             nout = len(fout) if hasattr(fout,"__len__") else 1
             if nout > 1:
                 for j in range(nout):
@@ -165,12 +168,6 @@ def compute(folders,function,args=None,output=None,overwrite=False,
             sys.stderr.flush()
         resultfile.close()
     return 0
-
-def compute_multithread(folders,function,**kw):
-    
-
-    pbar = tqdm("Completed Files:")
-
 
 #def Qpar(snapshot,average=1,zeroaxis=1,rmax=0.7,**args):
 #    """ 

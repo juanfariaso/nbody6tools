@@ -18,7 +18,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     """
     ##TODDO - add time to title
     ##      - make it look better, but make sure is fast.
-    print("showbound",show_bound)
+    #print("showbound",show_bound)
 
     def update_line(num,line,bline,cline,folder,title=None,sn0=None):
             orbit = None
@@ -48,11 +48,13 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
             line.set_offsets(numpy.c_[x,y])
             line.set_sizes(s)
             if show_bound :
-                bound_set = sn.stars.bound_set()
+                bound_set = sn.bound_stars
                 xb = bound_set[xy[0]]
                 yb = bound_set[xy[1]]
+                sb = bound_set["mass"]/0.5
+
                 bline.set_offsets(numpy.c_[xb,yb])
-                bline.set_sizes(s)
+                bline.set_sizes(sb)
             cline.set_xdata( XG[xy[0]] - XG[xy[0]][-1] )
             cline.set_ydata( XG[xy[1]] - XG[xy[1]][-1] )
             print("snapshot: ", num, sn.time) #TODO: Put nice progress info
@@ -130,7 +132,7 @@ def plot(folder,output=None,snapshot=1,projection="xy",space="position",ax=pyplo
     #s = (numpy.log10(m)+1)**2
     s = m/500
 
-    ax.axis("equal")
+    #ax.axis("equal")
 
     ax.scatter(x,y,s = s,c="k",alpha=0.7,edgecolors="none")
     ax.set_xlabel(xlabel)
