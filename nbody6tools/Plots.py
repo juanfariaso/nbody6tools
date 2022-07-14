@@ -100,22 +100,15 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     else:
         movie.save(output,fps=int(fps),dpi=dpi)
 
-def evol(folder,output=None,parameter="fbin",**kw):
-    if parameter == "fbin":
-        p_fbin(folder,**kw)
-    elif parameter == "lagr":
-        p_lagr(folder,**kw)
-    elif parameter == "total_energy":
-        p_total_energy(folder,**kw)
 
-    if output is None:
-        pyplot.show()
+def plot(folder,output=None,snapshot=1,time=None,projection="xy",
+        space="position",ax=pyplot.gca(),
+        point_scale = 1,
+        **kw):
+    if time is None:
+        st = read_snapshot(folder,snapshot)
     else:
-        pyplot.savefig(output)
-    return
-
-def plot(folder,output=None,snapshot=1,projection="xy",space="position",ax=pyplot.gca(),**kw):
-    st = read_snapshot(folder,snapshot)
+        st  = read_snapshot(folder,time=time)
     st.to_physical()
     if space == "position" : 
         fmt = "%s" 
@@ -129,14 +122,47 @@ def plot(folder,output=None,snapshot=1,projection="xy",space="position",ax=pyplo
     x = st.stars[fmt%projection[0]]
     y = st.stars[fmt%projection[1]]
     m = st.stars["mass"]
+    cmx = numpy.median(x)
+    cmy = numpy.median(y)
     #s = (numpy.log10(m)+1)**2
-    s = m/500
+    s = m*point_scale*10
+    rh = st.stars.half_mass_radius()
+    rbox = 3*rh
 
     #ax.axis("equal")
 
     ax.scatter(x,y,s = s,c="k",alpha=0.7,edgecolors="none")
+    ax.set_aspect('equal')
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.set_xlim( cmx - rbox, cmx+rbox  )
+    ax.set_ylim( cmy - rbox, cmy+rbox  )
+
+    if output is None:
+        pyplot.show()
+    else:
+        pyplot.savefig(output)
+    return
+
+def plot_evol(folder,output=None,parameter="fbin",
+        show_parameters=False,
+        yscale = "linear",
+        xscale = 'linear',**kw):
+    if show_parameters:
+        p_globals(folder,None,show_parameters=True)
+        return
+
+    if parameter == "fbin":
+        p_fbin(folder,**kw)
+    elif parameter == "lagr":
+        p_lagr(folder,**kw)
+    elif parameter == "total_energy":
+        p_total_energy(folder,**kw)
+    else:
+        p_globals(folder,parameter)
+
+    pyplot.xscale(xscale)
+    pyplot.yscale(yscale)
 
     if output is None:
         pyplot.show()
@@ -198,3 +224,23 @@ def p_total_energy(folder,ax= pyplot.gca(), **kw):
     ax.plot(gl["Time[Myr]"], gl["BE(3)"],"-k" )
     ax.set_xlabel("Time [Myr]")
     ax.set_ylabel("Total Energy (Nbunits)")
+
+def p_globals(folder, parameter,
+        show_parameters=False,ax = pyplot.gca(),**kw):
+    """Plot parameters from global.30.
+    Call with  show_parameters=True for a list of available parameters.
+    For definitions we refer to Nbody6 manual.
+    """
+    gl  =  get_globals(folder)
+    if show_parameters:
+        print("Available parameters from %sglboal.30: "%folder)
+        print([ k   for k in gl.keys() if "TIME" not in k])
+        return
+    t = gl['TIME[Myr]']
+    val = gl[parameter]
+
+    ax.plot(t,val, "-")
+    ax.set_ylabel(parameter)
+    ax.set_xlabel('time (Myr)')
+
+
