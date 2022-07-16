@@ -54,11 +54,19 @@ def parse_inputfile(inputfilename=inputFile,**kw):
 def get_number_of_snapshots(folder,inputfilename=inputFile,**kw):
     return len(get_times(folder,inputfilename))
 
-def get_times(folder,nbody=False,inputfilename=inputFile):
+def get_times(folder,nbody=False,inputfilename=inputFile,
+        snapshotfile = snapshotFile,singlefile=singleFile):
     glfile = get_globals(folder)
     inputfile = parse_inputfile("%s/%s"%(folder,inputfilename) )
     key = "TIME[NB]" if nbody else "TIME[Myr]"
-    return glfile[key][0::inputfile["NFIX"] ]
+
+    gltimes = glfile[key][0::inputfile["NFIX"] ]
+
+    if not singlefile:
+        #sometimes the last snapshot is not saved. Check that it exist.
+        lsnaps=[x.split("_")[-1] for x in glob.glob(folder+"%s*"%snapshotfile ) ]
+
+    return gltimes[:len(lsnaps)]
 
 def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile=singleFile,
         snapshotfile = snapshotFile):
@@ -71,8 +79,8 @@ def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile
 
     if not singlefile:
         if folder[-1] != "/" : folder +="/"
-        opt = Datamodel.parse_inputfile(folder+"/"+inputfilename)
-        kz = opt["KZ"]
+        #opt = Datamodel.parse_inputfile(folder+"/"+inputfilename)
+        #kz = opt["KZ"]
 
         #l=[x.replace("%s%s"%(folder,snapshotfile),"") for x in glob.glob(folder+"%s*"%snapshotfile ) ]
         l=[x.split("_")[-1] for x in glob.glob(folder+"%s*"%snapshotfile ) ]
