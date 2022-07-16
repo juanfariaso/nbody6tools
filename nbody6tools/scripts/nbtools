@@ -1,109 +1,163 @@
 #!/usr/bin/python3
 import sys
-from optparse import OptionParser
-from argparse import ArgumentParser
+from argparse import ArgumentParser,RawTextHelpFormatter
 from inspect import getmembers, isfunction
 
 from nbody6tools import Plots, Analyse
 
 
-def executable_options():
-    parser = ArgumentParser()
-    subparsers = parser.add_subparsers(help='Available Commands')
+class nbtools():
+    def __init__(self):
 
-    #parser.add_argument("folder", metavar="FOLDER",
-    #                    help="Simulation folder(s)", default="./", nargs="?")
+        available_commands = ["animate", "compute", "plot", "plot_evol" ]
+       
+        usage = "nbtools <command> [<args>]  FOLDER"
+        description = "Tools for Nbody6++ code" 
+        epilog = '''
+Available commands:
+%s
 
-    # animate
-    parse_animate = subparsers.add_parser("animate",
-                                          help="shows animation of simulation,"
-                                          "may be slow in big clusters.")
-    parse_animate.set_defaults(fun=Plots.make_animation)
-    parse_animate.add_argument("--boxsize", default=None, type=float,
-                               help="Size of the box in parsecs. "
-                               "Default: 10 initial half mass radius")
-    parse_animate.add_argument("--fps", default=10,
-                               help="frames per second if an output"
-                               " file is given")
-    parse_animate.add_argument("--xy", default="xy",
-                               choices=["xy", "yx", "xz", "zx", "yz", "zy"],
-                               help="Projection of animation. Default 'xy'")
-    parse_animate.add_argument("--dpi", default=None,
-                               help="dpi for animated output. Default 'None'")
-    parse_animate.add_argument("--show_bound",  default=False,
-                               action="store_true",
-                               help="Show bound star in red. Default False")
-    parse_animate.add_argument("-o", "--output", default=None,
-                               help="output file."
-                               "Defaults shows animation without saving. ")
-    parse_animate.add_argument("folder", metavar="FOLDER",
-                               help="Simulation folder", default="./",
-                               nargs="?")
 
-    # evol
-    parse_evol = subparsers.add_parser("evol",
-                                       help="shows the evolution of a parameter")
-    parse_evol.set_defaults(fun=Plots.evol)
-    parse_evol.add_argument("-p", "--parameter",
-                            default="fbin", choices=["fbin","lagr",
-                                                     "total_energy"], 
-                            help="paramter to show. Default fbin."
-                            )
-    parse_evol.add_argument("-o", "--output", default=None,
-                            help="output file (png,pdf,jpg). "
-                            "Default shows evolution. ")
-    parse_evol.add_argument("folder", metavar="FOLDER",
-                            help="Simulation folder", default="./", nargs="?")
+'''%("\n".join(
+               ["%15s : %s"%(com,getattr(self,com)(True)) for com in
+                 available_commands]
+               ))
 
-    # plot
-    parse_plot = subparsers.add_parser("plot",
-                                       help="plot position[velocity] of stars")
-    parse_plot.set_defaults(fun=Plots.plot)
-    parse_plot.add_argument("-s", "--space", default="position",
-                            choices=["position", "velocity"],
-                            help="space to plot. Default position.")
-    parse_plot.add_argument("--snapshot", default=1,
-                            help="Snapshot number to plot. Default 1")
+        parser = ArgumentParser(usage=usage,epilog =epilog,
+                description=description, formatter_class=RawTextHelpFormatter)
+        parser.add_argument('command',help ="Subcommand to run" )
+        args = parser.parse_args(sys.argv[1:2])
+        if not hasattr(self,args.command):
+            print('Unrecognized command') 
+            parser.print_help()
+            exit(1)
+        getattr(self,args.command)()
 
-    # compute
-    parse_compute = subparsers.add_parser("compute",
-                                          help="Calculate a parameter over"
-                                          " time and write result in output." 
-                                          "If more than one FOLDER is provided,"
-                                          "it places output on each FOLDER")
-    parse_compute.set_defaults(fun=Analyse.compute)
-    available_functions = [o[0] for o in getmembers(Analyse)
-                           if (isfunction(o[1]) and
-                               o[1].__module__ == "nbody6tools.Analyse")]
-    available_functions.remove("compute")
-    parse_compute.add_argument("function", default=None,
-                               choices=available_functions,
-                               help="function to evaluate"
-                               " (Defined in Analyse module)")
-    parse_compute.add_argument("-a", "--arguments", dest="args",
-                               metavar="arg=value", type=str, nargs="+",
-                               help="extra arguments to be passed to function."
-                               " value can only be numbers for now.")
-    parse_compute.add_argument("--doc", action="store_true",
-                               help="show documentation of function")
-    parse_compute.add_argument("--overwrite", action="store_true",
-                               help="if specified, overwrite output."
-                               " Else raise error if file exists.")
-    parse_compute.add_argument("-o", "--output", default=None,
-                               help="output file. Default use name of "
-                               "the function used. If more than one folder is "
-                               "provided, output will be placed on each "
-                               "folder, otherwise output is placed in the " 
-                               "current working directory. ")
-    parse_compute.add_argument("--stdout", default=None,
-                               help="redirect stdout to file.")
-    parse_compute.add_argument("folders", metavar="FOLDER",
-                               help="simulation folder", default=["./"], 
-                               nargs="*")
-    return parser
+    def animate(self,show_description=False):
+        description = "Shows simple animation of the sumulation"
+        if show_description:
+            return description
+        parser = ArgumentParser( prog='nbtools animate',description = description)
+        parser.set_defaults(fun=Plots.make_animation)
+        parser.add_argument("--boxsize", default=None, type=float,
+                                   help="Size of the box in parsecs. "
+                                   "Default: 10 initial half mass radius")
+        parser.add_argument("--fps", default=10,
+                                   help="frames per second if an output"
+                                   " file is given")
+        parser.add_argument("--xy", default="xy",
+                                   choices=["xy", "yx", "xz", "zx", "yz", "zy"],
+                                   help="Projection of animation. Default 'xy'")
+        parser.add_argument("--dpi", default=None,
+                                   help="dpi for animated output. Default 'None'")
+        parser.add_argument("--show_bound",  default=False,
+                                   action="store_true",
+                                   help="Show bound star in red. Default False")
+        parser.add_argument("-o", "--output", default=None,
+                                   help="output file."
+                                   "Defaults shows animation without saving. ")
+        parser.add_argument("folder", metavar="FOLDER",
+                                   help="Simulation folder",
+                                   nargs=1)
+        args = parser.parse_args( sys.argv[2:] )
+        Plots.make_animation( **vars(args) )
 
+    def plot_evol(self,show_description=False):
+        description = "Plot evolution of parameters from global.30 among others "
+        if show_description:
+            return description
+        parser = ArgumentParser( prog = "nbtools plot_evol",
+                                description = description )
+        choices=["fbin","lagr","total_energy"]
+        parser.add_argument("-p", "--parameter",
+                                default="lagr",  
+                                help=(" Parameter to show."
+                                " Availables: {%s}."%( ", ".join(choices)  )
+                                + " See additional "
+                                " available parameters from global.30 with --show_parameters."
+                                " Default: fbin." )
+                                )
+        parser.add_argument("--show_parameters", action ='store_true',
+                                help="Show other available parameters, from"
+                                " global.30"
+                                )
+        parser.add_argument("--yscale", help ="y axis scale. Default: linear",
+                                choices = ["linear","log"], default = "linear")
+        parser.add_argument("--xscale", help = "x axis scale. Default: linear",
+                                choices = ["linear","log"], default = "linear")
+        parser.add_argument("-o", "--output", default=None,
+                                help="Output file (png,pdf,jpg). "
+                                "Default shows evolution. ")
+        parser.add_argument("folder", metavar="FOLDER",
+                                help="Simulation folder.",
+                                )
+    
+
+        args = parser.parse_args( sys.argv[2:] )
+        Plots.plot_evol(**vars(args))
+
+    def compute(self,show_description=False):
+        description =  ( "Calculate a parameter over"
+                        " time and write result in output." 
+                        " If more than one FOLDER is provided,"
+                        " it places output on each FOLDER" )
+
+        if show_description:
+            return description
+        parser = ArgumentParser(prog="nbtools compute",
+                                description = description)
+        available_functions = [o[0] for o in getmembers(Analyse)
+                               if (isfunction(o[1]) and
+                                   o[1].__module__ == "nbody6tools.Analyse")]
+        available_functions.remove("compute")
+        parser.add_argument("function", default=None,
+                                   choices=available_functions,
+                                   help="function to evaluate"
+                                   " (Defined in Analyse module)")
+        parser.add_argument("-a", "--arguments", dest="args",
+                                   metavar="arg=value", type=str, nargs="+",
+                                   help="extra arguments to be passed to function."
+                                   " value can only be numbers for now.")
+        parser.add_argument("--doc", action="store_true",
+                                   help="show documentation of function")
+        parser.add_argument("--overwrite", action="store_true",
+                                   help="if specified, overwrite output."
+                                   " Else raise error if file exists.")
+        parser.add_argument("-o", "--output", default=None,
+                                   help="output file. Default use name of "
+                                   "the function used. If more than one folder is "
+                                   "provided, output will be placed on each "
+                                   "folder, otherwise output is placed in the " 
+                                   "current working directory. ")
+        parser.add_argument("--stdout", default=None,
+                                   help="redirect stdout to file.")
+        parser.add_argument("folders", metavar="FOLDER",
+                                   help="simulation folder. More than one"
+                                   " folder can be given.", 
+                                   nargs="+")
+        args = parser.parse_args( sys.argv[2:] )
+        Analyse.compute(**vars(args))
+
+    def plot(self,show_description=False):
+        description = "Plot position[velocity] of stars"
+        if show_description:
+            return description
+        parser = ArgumentParser(prog='nbtools plot', description = description)
+        parser.add_argument("-s", "--space", default="position",
+                                choices=["position", "velocity"],
+                                help="space to plot. Default position.")
+        parser.add_argument("--snapshot", default=1,
+                                help="Snapshot number to plot. Default 1")
+        parser.add_argument("-t","--time", default=None, type = float,
+                                help="Simulation time to plot [Myr]. If given"
+                                " takes preference against SNAPSHOT}}. Default: None")
+        parser.add_argument("--point_scale", default=None, type = float,
+                                help="Point scale factor. If given"
+                                " takes preference against SNAPSHOT}}. Default: None")
+        parser.add_argument("folder", metavar="FOLDER",
+                                help="Simulation folder", default="./", nargs="?")
+        args = parser.parse_args( sys.argv[2:] )
+        Plots.plot(**vars(args))
 
 if __name__ == '__main__':
-    optParser = executable_options()
-    args = optParser.parse_args()
-    args.fun(**vars(args))
+    nbtools()
