@@ -530,7 +530,8 @@ class Snapshot(object):
                 r = numpy.sqrt(x**2 + y**2 + z**2 ) 
                 krho = self.inputfile["KRHO"]
                 #result = - G*Mgas*(r/Rcore)**(3.0 - self.inputfile["KRHO"] )/r
-                result = G*Mgas*((r/Rcore)**(2-krho) - 3.0 + krho)/Rcore/(2-krho)
+                #result = G*Mgas*((r/Rcore)**(2-krho) - 3.0 + krho)/Rcore/(2-krho)
+                result = G*Mgas*((r/Rcore)**(2-krho*0.5) - 3.0 + krho)/Rcore/(2-krho)
                 result[ r >= Rcore ] = - G * Mgas / r[r >= Rcore]
             else:
                 result = x*0.0

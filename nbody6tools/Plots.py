@@ -132,8 +132,8 @@ def p_fbin(folder,ax = pyplot.gca(),**kw):
     ax.plot(t, np/(ns+np), "-")
 
 def p_lagr(folder,ax = pyplot.gca(),kind="lagr",inputfile="input",
-        #mass_fractions = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
-        mass_fractions = [0.01,0.1,0.5,1.0]
+        mass_fractions = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+        #mass_fractions = [0.01,0.1,0.5,1.0]
         ,**kw):
     """ Plots the lagrangian radii from lagr.7 file. Requires KZ(7) >= 3 """
 
