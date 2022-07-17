@@ -597,6 +597,14 @@ class Snapshot(object):
         main_indexes = numpy.arange(len(self.stars))
         iprim = main_indexes[numpy.isin(self.stars.name,primary_names)]
         ising =  main_indexes[numpy.isin(self.stars.name,singles_names) ]
+        #bug workaround : a version of the customized code had a bug.
+        # this block should not be needed. But printing a warning if it happens
+        ndummy = len(iprim)
+        iprim = iprim[iprim < self.n -1 ] # last index should NOT be a primary
+        if ndummy != len(iprim):
+            print("WARNING: Possible duplicated name in: %s"%self._snapshotfile)
+
+
 
         if not split_set:
             iall = numpy.concatenate([numpy.dstack( (iprim,iprim+1) ).flatten(),

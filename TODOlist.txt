@@ -22,13 +22,13 @@ nbody6tools/Datamodel/__init__.py:18:    # TODO : this function should be a well
 nbody6tools/Datamodel/__init__.py:155:    # TODO: Update Snapshot class documentation
 nbody6tools/Datamodel/__init__.py:319:        TODO: Update and add other backgrounds
 nbody6tools/Datamodel/__init__.py:528:            if self.inputfile["KZ"][14] == 5 and Mgas > 0 : #TODO implement other external potentials
-nbody6tools/Datamodel/__init__.py:636:#TODO (check): Snaphsot.reorder should not be needed anymore 
-nbody6tools/Datamodel/__init__.py:645:#TODO : Check Snapshot.unrsolve_all is still necessary
-nbody6tools/Datamodel/__init__.py:674:#TODO: handle multiple systems
-nbody6tools/Datamodel/__init__.py:684:        #TODO:  improve this, must be a better way
-nbody6tools/Datamodel/__init__.py:699:        #TODO: add check that pairs are correct
-nbody6tools/Datamodel/__init__.py:701:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
-nbody6tools/Datamodel/__init__.py:922:        #TODO Format string representation of Particle Class
+nbody6tools/Datamodel/__init__.py:644:#TODO (check): Snaphsot.reorder should not be needed anymore 
+nbody6tools/Datamodel/__init__.py:653:#TODO : Check Snapshot.unrsolve_all is still necessary
+nbody6tools/Datamodel/__init__.py:682:#TODO: handle multiple systems
+nbody6tools/Datamodel/__init__.py:692:        #TODO:  improve this, must be a better way
+nbody6tools/Datamodel/__init__.py:707:        #TODO: add check that pairs are correct
+nbody6tools/Datamodel/__init__.py:709:        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
+nbody6tools/Datamodel/__init__.py:930:        #TODO Format string representation of Particle Class
 nbody6tools/scripts/nbt-movie:107:    #TODO make this line optional
 nbody6tools/scripts/nbt-movie:297:    cdens = rho.sum(axis=1).T #TODO: Able to choose projection
 nbody6tools/ext/src/Qpar.f90:3:      ! TODO: Find out and put the proper credits here.
