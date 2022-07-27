@@ -264,7 +264,7 @@ def binary_energy(snapshot):
 
     return ebin_hard,ebin_wide,ebin_hard+ebin_wide
 
-def velocity_dispersion(snapshot,bound=True) :
+def velocity_dispersion(snapshot,bound=False) :
     snapshot.to_physical()
     if bound:
         stars = snapshot.bound_stars_unresolved
@@ -272,14 +272,19 @@ def velocity_dispersion(snapshot,bound=True) :
         stars = snapshot.unresolved_stars
     return stars.velocity_dispersion()
 
-def number_density(snapshot,mass_fraction_radii = 0.5) :
+def number_density(snapshot,mass_fraction_radii = 0.5,bound=False) :
     """
     Compute the number density on a radius given by mass_fraction_radius.
     Default : 0.5, i.e. Half mass radius.
     returns : number density at given radii in stars / pc**3
     """
     snapshot.to_physical()
-    stars = snapshot.bound_stars_unresolved #unresolved is faster
+    #print(bound, "b is false?",bound == False)
+    #if bound :
+    #    stars = snapshot.bound_stars_unresolved #unresolved is faster
+    #else:
+    #    stars = snapshot.stars[snapshot.stars.r < 1e6]
+    stars = snapshot.stars
     r = stars.mass_radius(fraction=mass_fraction_radii) 
     stars.to_center()
     stars = stars[ stars.r < r ]

@@ -57,8 +57,7 @@ Available commands:
                                    help="output file."
                                    "Defaults shows animation without saving. ")
         parser.add_argument("folder", metavar="FOLDER",
-                                   help="Simulation folder",
-                                   nargs=1)
+                                   help="Simulation folder")
         args = parser.parse_args( sys.argv[2:] )
         Plots.make_animation( **vars(args) )
 
@@ -155,7 +154,7 @@ Available commands:
                                 help="Point scale factor. If given"
                                 " takes preference against SNAPSHOT}}. Default: None")
         parser.add_argument("folder", metavar="FOLDER",
-                                help="Simulation folder", default="./", nargs="?")
+                                help="Simulation folder")
         args = parser.parse_args( sys.argv[2:] )
         Plots.plot(**vars(args))
 
