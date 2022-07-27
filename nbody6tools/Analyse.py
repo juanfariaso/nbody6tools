@@ -234,9 +234,9 @@ def bound_fraction(snapshot,**args):
     bound_set = snapshot.bound_stars_unresolved
     sigma = bound_set.velocity_dispersion()
     rh = bound_set.half_mass_radius()
-    return bound_set.mass.sum() / snapshot.stars.mass.sum(), sigma, rh
+    return bound_set.mass.sum() / snapshot.stars.mass.sum(), sigma,rh ,len(bound_set)
 
-def virial_ratio(snapshot,bound = True):
+def virial_ratio(snapshot,bound = False):
     """ Calculate the virial ratio of snapshot:
 
     bound : if True only consider bound stars
