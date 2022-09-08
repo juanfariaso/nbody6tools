@@ -663,76 +663,84 @@ class Snapshot(object):
         hardfile = self._snapshotfile.replace("conf.3_","bdat.9_")
 
         hard,wide = get_binaries_from_files(hardfile,widefile)
-        ### construct the particle set
-        #all names that belong to a binary
-        allmembers = numpy.concatenate((hard["primary"],hard["secondary"],
-                                        wide["primary"],wide["secondary"]) )
-        primaries = numpy.concatenate((hard["primary"],wide["primary"] ))
-        secondaries = numpy.concatenate((hard["secondary"],wide["secondary"] ))
-        pairs = numpy.array(list( zip(primaries,secondaries)) ) 
-        higher_orders = numpy.where( (pairs > self.n) | ( pairs <= 0) )  
-        if len(pairs) == 0:
-            return self.stars
-        pairs = numpy.delete(pairs,higher_orders[0] , axis=0 )
-        primaries,secondaries = numpy.array(pairs).T
+        allstars = self.allparticles
+        primaries = numpy.concatenate([hard['primary'],wide['primary']] )
+        secondaries =numpy.concatenate([hard['secondary'],wide['secondary']] )
+        notsingles = numpy.concatenate([primaries,secondaries, 
+                                        allstars.name[allstars.name>=self.n]]) 
 
-        #extract binaries in multiples and add to singles for now 
+        index = numpy.arange(len(allstars))
+        iprim = index[numpy.isin(allstars.name,primaries) ] 
+        isec = iprim+1
+        prim = allstars[iprim]
+        sec = allstars[isec]
+        imembers = [list(i) for i in zip(primaries,secondaries)]
+        ##### Translate members names (e.g. binaries of binaries) to singles names
+        for sys in imembers:
+            imul = numpy.argwhere( (numpy.array(sys) > self.n) + (numpy.array(sys) < 0 ) ).flatten()
+            while len(imul) >0:
+                mulnames = numpy.array(sys)[imul] #maybe more than one multiple
+                for mulname in mulnames :
+                    #if mulname <= sn.n :
+                    name = abs(mulname)
+                    while name > self.n:
+                        name = name - self.n 
+                    iwhere = numpy.argwhere( primaries == name).flatten()
+                    if len(iwhere) == 0:
+                        iwhere = numpy.argwhere( secondaries == name).flatten()
+                    #print("i am ",sys,'contain this multiple',mulname,
+                    #      'i a on pair number:',iwhere, 'multiple primary is',name,'and the bnary is', numpy.array(imembers)[iwhere])
+                    #try:
+                    newnames = numpy.array(imembers,dtype=object)[iwhere[0]]#.flatten()
+                    #except:
+                    #    print(mulnames,sys,name)
+                    #    raise
+                    sys.remove(mulname) 
+                    #print("newnames",newnames,len(newnames))
+                    sys.extend(newnames)
+                    #print('now I am', sys)
+                    if len(iwhere) >0 :
+                        imembers[iwhere[0]] = 0
+                imul = numpy.argwhere( (numpy.array(sys) > self.n) + (numpy.array(sys) <0 ) ).flatten()
+        imembers = numpy.array(imembers,dtype=object)[numpy.array(imembers,dtype=object) != 0 ]
+        index = numpy.arange(len(allstars))
+        members_index = []
+        for sys in imembers:
+            members_index.append(  index[numpy.isin( allstars.name,sys ) ]  )
 
-        #position of singles, primaries and secondaries
-#TODO: handle multiple systems
-        i_singles = numpy.invert(numpy.isin(self.stars.name,allmembers))
-        singles = self.stars[i_singles]
+        ising = index[numpy.isin(allstars.name,notsingles,invert=True) ] 
+        star_dict = dict(name=[],x=[],y=[],z=[],
+                         vx=[],vy=[],vz=[],
+                         mass = [], nmem = [] )
+        for igroup in  members_index :
+            group = allstars[igroup]
+            if group.mass.sum() ==0 :
+                continue
+            star_dict['mass'].append( group.mass.sum())
+            xi = group.center_of_mass()
+            vi = group.center_of_mass_velocity()
+            star_dict['name'].append( self.n + group.name[0]  )
+            star_dict['x'].append(xi[0])
+            star_dict['y'].append(xi[1])
+            star_dict['z'].append(xi[2])
+            star_dict['vx'].append(vi[0])
+            star_dict['vy'].append(vi[1])
+            star_dict['vz'].append(vi[2])
+            star_dict['nmem'].append( len(group) )
+        x = star_dict['x']
+        star_dict['pot'] = numpy.zeros_like(x)
+        star_dict['epot'] = numpy.zeros_like(x) 
+        star_dict['kstar'] = numpy.full_like(x,-999) 
+        star_dict['I'] = numpy.arange(len(x)) 
+        center = self.stars.center
 
-        i_prim = numpy.isin(self.stars.name,primaries)
-        prim_stars = self.stars[i_prim]
+        unresolved = Particles(star_dict,center = center,
+                                         physical=allstars.physical)
+        singles = allstars[ising]
+        singles.nmem = numpy.full_like(singles.name,1)
 
-        #i_sec = numpy.isin(self.stars.name,secondaries)
-        #sec_stars = self.stars[i_sec]
-
-        #TODO:  improve this, must be a better way
-        isec = []
-        for prim,sec  in  pairs:
-            #print(numpy.where(self.stars.name == sec)[0][0] )
-            ii = numpy.where(self.stars.name == sec)[0][0]
-            #print("[",prim,sec,"]", self.stars.name[ii],  ii)
-            isec.append( ii )
-        sec_stars = self.stars[ numpy.array(isec) ] 
-
-        #Make sure they are in the correct order
-        #isort = numpy.argsort(primaries)
-        #primaries = primaries[isort]
-        #secondaries = secondaries[isort]
-
-        #order = numpy.argsort(prim_stars)
-        #TODO: add check that pairs are correct
-        bdict = dict()
-        bdict["name"] = prim_stars.name + self.n #TODO: check this is the standard
-        bdict["mass"] = prim_stars.mass + sec_stars.mass
-        bdict["x"] = (prim_stars.mass*prim_stars.x 
-                      + sec_stars.mass*sec_stars.x) / bdict["mass"]
-        bdict["y"] = (prim_stars.mass*prim_stars.y 
-                      + sec_stars.mass*sec_stars.y) / bdict["mass"]
-        bdict["z"] = (prim_stars.mass*prim_stars.z 
-                      + sec_stars.mass*sec_stars.z) / bdict["mass"]
-        bdict["vx"] = (prim_stars.mass*prim_stars.vx 
-                       + sec_stars.mass*sec_stars.vx) / bdict["mass"]
-        bdict["vy"] = (prim_stars.mass*prim_stars.vy
-                       + sec_stars.mass*sec_stars.vy) / bdict["mass"]
-        bdict["vz"] = (prim_stars.mass*prim_stars.vz 
-                       + sec_stars.mass*sec_stars.vz) / bdict["mass"]
-        bdict["pot"] = (prim_stars.mass*prim_stars.pot
-                        + sec_stars.mass*sec_stars.pot) / bdict["mass"]
-        bdict["epot"] = self.external_potential_at_point(bdict["x"],bdict["y"],
-                                                         bdict["z"])
-
-        result_dict = dict()
-        for key in singles.available_attributes():
-            sval = singles[key]
-            bval = bdict[key]
-            result_dict[key] = numpy.concatenate( [sval,bval] )
-
-        return Particles(result_dict,
-                         physical=self.physical)
+        return singles + unresolved 
+    
 
 class Particles(Methods):
     """
@@ -938,8 +946,9 @@ class Particles(Methods):
                 'only Particles and Particles are supported for __add__')
         otherdict = other.__dict__[ '_Particles__data' ] 
                  
-        assert self.__data.keys() == otherdict.keys() ,(
-                'Particles must have the same properties')
+        assert set(self.__data.keys()) == set(otherdict.keys()) ,(
+                'Particles must have the same properties \n %s , %s'%(
+                    set(self.__data.keys()), set(otherdict.keys()) ))
         result_dict = dict()
         assert numpy.isin(self.name,otherParticles.name).sum() == 0, (
                 'Added particles contain repeated members')
