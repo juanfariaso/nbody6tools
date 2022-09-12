@@ -5,7 +5,7 @@ def get_mass_radius(starsraw,fraction=0.5,direction="average"):
         input : stars    : Dictionary containing mass and x,y,z
                 fraction : Mass fraction to calculate. 
     """
-    stars = starsraw
+    stars = starsraw.copy()
     #cm = stars.center_of_mass()
     stars.to_center()
 

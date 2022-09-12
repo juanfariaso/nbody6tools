@@ -670,10 +670,6 @@ class Snapshot(object):
                                         allstars.name[allstars.name>=self.n]]) 
 
         index = numpy.arange(len(allstars))
-        iprim = index[numpy.isin(allstars.name,primaries) ] 
-        isec = iprim+1
-        prim = allstars[iprim]
-        sec = allstars[isec]
         imembers = [list(i) for i in zip(primaries,secondaries)]
         ##### Translate members names (e.g. binaries of binaries) to singles names
         for sys in imembers:
@@ -711,7 +707,7 @@ class Snapshot(object):
         ising = index[numpy.isin(allstars.name,notsingles,invert=True) ] 
         star_dict = dict(name=[],x=[],y=[],z=[],
                          vx=[],vy=[],vz=[],
-                         mass = [], nmem = [] )
+                         mass = [], nmem = [],mprim = [] )
         for igroup in  members_index :
             group = allstars[igroup]
             if group.mass.sum() ==0 :
@@ -727,6 +723,7 @@ class Snapshot(object):
             star_dict['vy'].append(vi[1])
             star_dict['vz'].append(vi[2])
             star_dict['nmem'].append( len(group) )
+            star_dict['mprim'].append(group.mass.max() )
         x = star_dict['x']
         star_dict['pot'] = numpy.zeros_like(x)
         star_dict['epot'] = numpy.zeros_like(x) 
@@ -738,6 +735,7 @@ class Snapshot(object):
                                          physical=allstars.physical)
         singles = allstars[ising]
         singles.nmem = numpy.full_like(singles.name,1)
+        singles.mprim = singles.mass
 
         return singles + unresolved 
     
