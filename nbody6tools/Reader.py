@@ -95,10 +95,12 @@ def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile
 
     return Snapshot("%s/%s"%(folder,snapshotfile),inputfile,singlefile,snapshot=snapshot)
 
-def read_binaries(folder,snapshot=0,inputfilename=inputFile):
+def read_binaries(folder,snapshot=0,inputfilename=inputFile, single_dict=False ):
     """
     Returns two dictionaries with binary properties
     regularized binaries , wide binaries
+    if single_dict = True, a single dictionary containing both (hard and wide)
+    binaries will be the result.
     """
     #TODO raise error when needed kz option is not set and check how to deal
     # with single snapshotFilecase
@@ -111,7 +113,8 @@ def read_binaries(folder,snapshot=0,inputfilename=inputFile):
     widefile = "%s/bwdat.19_%s"%(folder,times[snapshot])
     hardfile = "%s/bdat.9_%s"%(folder,times[snapshot] )
 
-    return Datamodel.get_binaries_from_files(hardfile,widefile)
+    return Datamodel.get_binaries_from_files(hardfile,widefile,
+            single_dict=single_dict)
 
 def get_orbit_interpolator(folder,outputfile = None):
     return Interpolators.ClusterOrbitInterpolator(folder = folder, 

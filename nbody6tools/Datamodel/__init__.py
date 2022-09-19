@@ -99,7 +99,7 @@ def parse_inputfile(inputfilename):
                 ["PPDP","PPDTAU","PPDR0"],[float]*3 )
     return result
 
-def get_binaries_from_files(hardfile,widefile):
+def get_binaries_from_files(hardfile,widefile,single_dict=False):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         bwdat = numpy.loadtxt(widefile,skiprows=2).T
@@ -131,7 +131,13 @@ def get_binaries_from_files(hardfile,widefile):
             d["kstar1"]  = numpy.array([])
             d["kstar2"]  = numpy.array([])
 
-    return hardbin,widebin
+    if single_dict :
+        d =  dict() 
+        for key in hardbin.keys() :
+            d[key] = numpy.concatenate([ hardbin[key],widebin[key] ])
+        return d
+    else:
+        return hardbin,widebin
 
 class Snapshot(object):
     """
