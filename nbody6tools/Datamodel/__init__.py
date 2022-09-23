@@ -97,6 +97,7 @@ def parse_inputfile(inputfilename):
     if KZ[48] == 1: # PPDISKs models
         parseline(inputfile.readline(),result,
                 ["PPDP","PPDTAU","PPDR0"],[float]*3 )
+    inputfile.close()
     return result
 
 def get_binaries_from_files(hardfile,widefile,single_dict=False):
@@ -434,6 +435,7 @@ class Snapshot(object):
       physical = self.physical
       self.__structure(record)
       #self.__record = record
+      self.__recordfile.close()
       if physical:
           self.to_physical()
 
