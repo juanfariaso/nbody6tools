@@ -104,8 +104,12 @@ def read_binaries(folder,snapshot=0,inputfilename=inputFile, single_dict=False )
     """
     #TODO raise error when needed kz option is not set and check how to deal
     # with single snapshotFilecase
-    l=[x.replace("%s%s"%(folder,snapshotFile),"")
-            for x in glob.glob(folder+"%s*"%snapshotFile) ]
+    #remove repeated '/' 
+    f = folder.split('/')
+    f = [ x for x in f if x not in ['']]
+    f = '/'.join([''] + f + ['']) 
+    l=[x.replace("%s%s"%(f,snapshotFile),"")
+            for x in glob.glob(f+"%s*"%snapshotFile) ]
     l.sort(key=float)
     times = numpy.array(l,dtype=str)
 
