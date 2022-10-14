@@ -621,6 +621,31 @@ class Snapshot(object):
         else:
             return self.stars[ising], self.stars[iprim], self.stars[iprim+1]
 
+    def unresolve_set(self,resolved_set):
+        """"
+        Unresolve regularized binaries, replace them by center of mass, using
+        name convention.
+        """
+        cmp = self.allparticles[self.allparticles.name > self.n ] 
+        primary_names = cmp.name - self.n
+        indexes = numpy.arange(len(self.allparticles))
+        mask = numpy.isin(self.allparticles.name,primary_names)
+        iprim = indexes[mask]
+        isec = iprim +1
+        names_in_binary = numpy.concatenate( [ primary_names, 
+                                        self.allparticles.name[isec] ])
+
+        #res_ind = numpy.arange(len(resolved_set))
+        #names in resolved_set not in binary names
+        singles = resolved_set[
+                numpy.isin(resolved_set.name,names_in_binary,invert=True) 
+                ]
+        #replace pairs by cm particle
+        #input_primaries = res_ind[numpy.isin(resolved_set.name,primary_names)]
+        cmout = cmp[ numpy.isin( cmp.name - self.n,resolved_set.name )  ]
+
+        return singles + cmout
+
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
         if not self._physical :
