@@ -3,9 +3,11 @@ A set of tools for Nbody6 simulations.
 
 ## Install
 
+This code is meant to work in python3 
+
 After cloning, from inside clonning folder just do:
 ```
-pip install ./
+pip3 install ./
 ```
 This package only works with python3
 
