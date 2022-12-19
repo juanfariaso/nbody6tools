@@ -17,6 +17,7 @@ from numpy.distutils.core import setup
 snwbl = Extension(name = 'nbody6tools.snowballing',
                  sources = ['nbody6tools/ext/src/snowballing.f',
                             'nbody6tools/ext/src/snowballing.pyf'], # you may add several modules files under the same extension
+                 extra_compile_args = ['-O3'],
                 )
 
 dependencies = ["scipy","h5py","matplotlib","tqdm"]

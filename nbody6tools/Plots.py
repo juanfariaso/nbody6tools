@@ -20,7 +20,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     ##      - make it look better, but make sure is fast.
     #print("showbound",show_bound)
 
-    def update_line(num,line,bline,cline,folder,title=None,sn0=None):
+    def update_line(num,line,bline,cline,folder,title=None,sn0=None,draw_orbit=False):
             orbit = None
             if sn0 is None:
                 sn = read_snapshot(folder,num)
@@ -31,7 +31,7 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
 
             sn.to_physical()
 
-            if 0 < sn.inputfile['KZ'][14] <= 3 :
+            if (0 < sn.inputfile['KZ'][14] <= 3) and draw_orbit :
                 if orbit is None:
                     orbit = get_orbit_interpolator(folder)
                 #orbit.times = sn.time + 0.000001

@@ -70,11 +70,15 @@ class Methods():
         return ke
 
     def center_of_mass(self):
-        mtot = self.mass.sum()
-        x = (self.mass*self.x).sum()/mtot
-        y = (self.mass*self.y).sum()/mtot
-        z = (self.mass*self.z).sum()/mtot
-        return x,y,z
+        mtot = numpy.nansum(self.mass)
+        if mtot  >0  :
+            x = (self.mass*self.x).sum()/mtot
+            y = (self.mass*self.y).sum()/mtot
+            z = (self.mass*self.z).sum()/mtot
+            return x,y,z
+        else :
+            return self.x.mean(),self.y.mean(),self.z.mean()
+
 
     def center_of_mass_velocity(self):
         mtot = self.mass.sum()

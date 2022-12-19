@@ -172,6 +172,7 @@ class Snapshot(object):
         self._physical = False
         self.__read_snapshot()
         self.__orbit = None
+        self.__unresolved_pointers = None
 
     @property
     def parameters(self):
@@ -191,7 +192,8 @@ class Snapshot(object):
         """ Dict. containing stellar coordinates:
         mass, x,y,z, vx,vy,vz,epot
         """
-        return self.__allstars[ (self.__allstars.name > 0)  ]
+        #return self.__allstars[ (self.__allstars.name > 0)  ]
+        return self.__allstars
 
     @property
     def unresolved_stars(self):
@@ -279,6 +281,12 @@ class Snapshot(object):
                   False: Snapshot in different files. Provide a file to advance.
         """
         return self._singlefile
+
+    @property
+    def unresolved_pointers(self):
+        #if self.__unresolved_pointers is None:
+        self.__make_unresolved_pointers()
+        return self.__unresolved_pointers
 
     def __bound_stars(self,resolved=True):
         """Return bound subset of stars.
@@ -548,7 +556,7 @@ class Snapshot(object):
             result = x*0.0
         return result
 
-    def resolve_set_old(self, unresolved_set ):
+    def resolve_set_older(self, unresolved_set ):
         """ 
         Old version: Worked and tested but slow
         Resolve binaries from unresolved_set, based on names.
@@ -566,7 +574,7 @@ class Snapshot(object):
                                    ising])
         return self.stars[iall]
 
-    def resolve_set(self, unresolved_set, split_set=False ):
+    def resolve_set_old(self, unresolved_set, split_set=False ):
         """ 
         New version: under testing. Should be faster.
         Resolve binaries from unresolved_set, based on names.
@@ -621,7 +629,7 @@ class Snapshot(object):
         else:
             return self.stars[ising], self.stars[iprim], self.stars[iprim+1]
 
-    def unresolve_set(self,resolved_set):
+    def unresolve_set_old(self,resolved_set):
         """"
         Unresolve regularized binaries, replace them by center of mass, using
         name convention.
@@ -645,6 +653,106 @@ class Snapshot(object):
         cmout = cmp[ numpy.isin( cmp.name - self.n,resolved_set.name )  ]
 
         return singles + cmout
+
+    def __find_child_names(self,name):
+        allnames = self.allparticles.name
+        N = self.n 
+        n_true = N*10
+        iname = []
+        _i = 1
+        while n_true > N and len(iname) ==0:
+            n_true  = abs(name) - self.n*_i
+            if n_true < 0 :
+                n_true = N
+                iname = []
+                break
+            iname = numpy.argwhere( allnames == n_true)
+            _i+=1
+        if len(iname) == 0 :
+            n_true  = abs(name)
+            iname = numpy.argwhere( allnames == n_true)
+            if len(iname)==0:
+                raise Exception('particle %s points to nothing'%n)
+        return n_true,iname.squeeze()
+
+    def __find_all_childs(self,name):
+        allnames = self.allparticles.name
+        N = self.n
+        if 0< name <= N :
+            return [name]#,numpy.argwhere(allparts.name == name).squeeze()
+        iname = numpy.argwhere( allnames  == abs(name) ).squeeze()
+        members = []
+        n_true,iname = self.__find_child_names(name)
+        members= [ allnames[iname],allnames[iname+1] ] 
+        #print(n)
+        for m in members:
+            #print('  ',m)
+            m_1,m1_index = self.__find_child_names(m)
+            #print('   ',m_1)
+            if m_1 != m:
+                members.append( allnames[m1_index])
+                members.append( allnames[m1_index+1])
+        #print('\n         ',members)
+        return members
+
+    def __make_unresolved_pointers(self):
+        unresolved_all = self.unresolved_stars
+        members = [] 
+        parents = []
+        for n in unresolved_all.name:
+            childs =  self.__find_all_childs(n) 
+            parents.extend([n]*len(childs))
+            members.extend(list(childs))
+        self.__unresolved_pointers = numpy.array(parents),numpy.array(members) 
+
+    def unresolve_set(self,stars):
+        """ 
+        New version: under testing.
+        Resolve binaries from unresolved_set, based on names.
+        unresolved_set must be a set of stars taken from the same snapshot
+        object containing this function.
+
+        Input:
+        -----
+        unresolved_set : Particles object
+                         Must be a Particle object contained in this Snapshot.
+
+
+        Output:
+        ------
+        resolved_particles  
+        
+        """
+        parents,members = self.unresolved_pointers
+        #find all parents names
+        indexes = numpy.arange(len(parents))
+        indexes = indexes[numpy.isin(members,stars.name)]
+        parents = numpy.array(list(set( parents[indexes]) )) 
+        
+        #find parents particles
+        indexes = numpy.arange(len(self.allparticles))
+        allp = self.allparticles.copy()
+        result = allp[numpy.isin(allp.name,parents)]
+        #result.set_center(center)
+        return result
+
+    def resolve_set(self,stars):
+        """"
+        Unresolve regularized binaries, replace them by center of mass, using
+        name convention. Include multiples.
+        """
+        parents,members = self.unresolved_pointers
+        #find all child names
+        indexes = numpy.arange(len(parents))
+        indexes = indexes[numpy.isin(parents,stars.name)]
+        childs = numpy.array(list(set( members[indexes]) )) 
+        
+        #find child particles
+        indexes = numpy.arange(len(self.allparticles))
+        allp = self.allparticles.copy()
+        result = allp[numpy.isin(allp.name,childs)]
+        #result.set_center(center)
+        return result
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."

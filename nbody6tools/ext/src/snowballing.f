@@ -407,6 +407,10 @@
              ITERFLAG=ITERFLAG + NBOUND(CL) - NBOUNDOLD(CL)
           END DO
           IF (SCREEN) THEN
+             PRINT *, "AVX", AVGVX
+             PRINT *, "AVY", AVGVY
+             PRINT *, "AVZ", AVGVZ
+
              PRINT *,L,NBOUND(1:NCL) ," SB"
           ENDIF
           IF (ABS(ITERFLAG).LE.TOL.AND.(.NOT.ALLPARTS))
