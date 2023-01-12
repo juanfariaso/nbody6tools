@@ -18,7 +18,7 @@
       !not anoutput for python
 
       INTEGER I,CL,K,NIN,NBOUND,TOL
-      DOUBLE PRECISION M,MI,R,CM(3),CV(3)
+      DOUBLE PRECISION M,MI,R,CM(3),CV(3),VSIGMAS(NCL),VCORES(3,NCL)
       DOUBLE PRECISION RAD(NSTARS),RMAX,RTOCL(NCL,NSTARS)
       TOL=0
       RMAX=1.E20
@@ -37,6 +37,7 @@
             CM(1:3)=(/0.0,0.0,0.0/)
             CV(1:3)=(/0.0,0.0,0.0/)
             NIN=0
+            VSIGMAS(CL) = 0.0
             DO I=1,NSTARS
                R=0.0
                M=STARS(7,I)
@@ -71,18 +72,17 @@
                     PRINT*, "mean mass :", MI/NIN, STARS(7,1)
             END IF
 
-
-
-            CALL ELIMINATION_STEP(NSTARS,STARS,RCORES(CL),
-     &                            CLSTARS(CL,:),NIN,NBOUND,RAD,SCREEN,G)
+            CALL ELIMINATION_STEP(NSTARS,STARS,RCORES(CL),CLSTARS(CL,:),
+     &                 VSIGMAS(CL),VCORES(:,CL),NIN,NBOUND,RAD,SCREEN,G)
 
       END DO
-      CALL SB_SIME(NSTARS,NCL,STARS,RMAX,CLSTARS,RTOCL,SCREEN,TOL,G)
+      CALL SB_SIME(NSTARS,NCL,STARS,RMAX,CLSTARS,VSIGMAS,VCORES,RTOCL,
+     &                                                     SCREEN,TOL,G)
 
       END
 
-      SUBROUTINE ELIMINATION_STEP(NPART,STARS,RCORE,FLAG,NIN,NBOUND,
-     & RAD,SCREEN,G)
+      SUBROUTINE ELIMINATION_STEP(NPART,STARS,RCORE,FLAG,VSIGMA,VCORE,
+     & NIN,NBOUND,RAD,SCREEN,G)
       IMPLICIT NONE
       ! First step of the "Snowballing Method"
       ! This subroutine modifies the FLAG array.
@@ -280,20 +280,20 @@
       !print *,""
       END
 
-      SUBROUTINE SB_SIME(NPART,NCL,STARS,RMAX,CFLAGS,
+      SUBROUTINE SB_SIME(NPART,NCL,STARS,RMAX,CFLAGS,VSIGMA,VCORE,
      & R,SCREEN,TOL,G)
       IMPLICIT NONE
 
       INTEGER NPART,NCL,CFLAGS(NCL,NPART),INCORE(NPART)
       DOUBLE PRECISION STARS(8,NPART),RCORE,RMAX,MBOUND(NCL)
-      DOUBLE PRECISION R(NCL,NPART),G
+      DOUBLE PRECISION R(NCL,NPART),G,VSIGMA(NCL),VCORE(3,NCL)
       LOGICAL SCREEN
 
-      INTEGER I,J,BMIN,L,ITERFLAG,NBOUND(NCL),NBOUNDOLD(NCL),CL
-      INTEGER ITERMAX,TOL
-      DOUBLE PRECISION SEP,KE,POT,IVEL(4,NPART)
+      INTEGER I,J,K,BMIN,L,ITERFLAG,NBOUND(NCL),NBOUNDOLD(NCL),CL
+      INTEGER ITERMAX,TOL, ITEMP
+      DOUBLE PRECISION SEP,KE,POT,IVEL(4,NPART), TEMP, MCOUNT(NCL)
       DOUBLE PRECISION AVGVX(NCL),AVGVY(NCL),AVGVZ(NCL),FR,BE(NCL,NPART)
-      DOUBLE PRECISION DX,DY,DZ
+      DOUBLE PRECISION DX,DY,DZ, VPART(NPART), VK
       LOGICAL ALLPARTS
 
       !G=4.3024e-3
@@ -304,6 +304,7 @@
       FR=1
       L=0
       ITERFLAG=TOL+1000
+      ITEMP = 0
       DO I=1,NPART
          INCORE(I)=0
          DO CL=1,NCL
@@ -330,39 +331,51 @@
          ! Obtain mean velocity with currently bound particles
          DO CL=1,NCL
             MBOUND(CL)= 0.
+            MCOUNT(CL)= 0.
             AVGVX(CL) = 0.
             AVGVY(CL) = 0.
             AVGVZ(CL) = 0.
             DO I=1,NPART
                IF (CFLAGS(CL,I).EQ.1) THEN 
                   MBOUND(CL)=MBOUND(CL)+STARS(7,I)
-                  AVGVX(CL)=AVGVX(CL)+STARS(4,I)*STARS(7,I)
-                  AVGVY(CL)=AVGVY(CL)+STARS(5,I)*STARS(7,I)
-                  AVGVZ(CL)=AVGVZ(CL)+STARS(6,I)*STARS(7,I)
+                  VPART(I) = 0.0
+                  DO K=1,3 
+                        VK = STARS(3+K,I) - VCORE(K,CL)
+                        VPART(I) = VPART(I) + VK*VK
+                  END DO
+                  VPART(I) = DSQRT(VPART(I))
+                  IF ( VPART(I).LT.(2*VSIGMA(CL)) ) THEN
+                          MCOUNT(CL) = MCOUNT(CL) + STARS(7,I)
+                          AVGVX(CL) = AVGVX(CL)+STARS(4,I)*STARS(7,I)
+                          AVGVY(CL) = AVGVY(CL)+STARS(5,I)*STARS(7,I)
+                          AVGVZ(CL) = AVGVZ(CL)+STARS(6,I)*STARS(7,I)
+                  END IF
                END IF
             END DO
-            IF (MBOUND(CL).GT.0) THEN
-               AVGVX(CL)=AVGVX(CL)/MBOUND(CL)
-               AVGVY(CL)=AVGVY(CL)/MBOUND(CL)
-               AVGVZ(CL)=AVGVZ(CL)/MBOUND(CL)
+            IF (MCOUNT(CL).GT.0) THEN
+               VCORE(1,CL)=AVGVX(CL)/MCOUNT(CL)
+               VCORE(2,CL)=AVGVY(CL)/MCOUNT(CL)
+               VCORE(3,CL)=AVGVZ(CL)/MCOUNT(CL)
             END IF
          END DO
-        !Now obtain the binding energy for each particle to each core
+      !print*, "avx avy avz mcount: ", AVGVX(CL), AVGVY(CL), AVGVZ(CL),
+      !&   MCOUNT(CL)
+      !Now obtain the binding energy for each particle to each core
 
         DO CL=1,NCL
             DO I=1,NPART
                !print*,CL,I, R(CL,I),R(CL,I)/RMAX
                IF (R(CL,I).GT.RMAX) CYCLE !OPTIMIZATION
                IF (.NOT.ALLPARTS.AND.INCORE(I).EQ.1) CYCLE
-               IVEL(1,I)=STARS(4,I)-AVGVX(CL)
-               IVEL(2,I)=STARS(5,I)-AVGVY(CL)
-               IVEL(3,I)=STARS(6,I)-AVGVZ(CL)
-               IVEL(4,I)= IVEL(1,I)*IVEL(1,I) + 
-     &                    IVEL(2,I)*IVEL(2,I) + IVEL(3,I)*IVEL(3,I)
+               IVEL(4,I) = 0.0
+               DO K=1,3 
+                       IVEL(K,I)=STARS(3+K,I)-VCORE(K,CL)
+                       IVEL(4,I) = IVEL(4,I) + IVEL(K,I)*IVEL(K,I) 
+               END DO
                POT=0.0
                DO J=1,NPART
                   IF (J.EQ.I) CYCLE
-                  IF (CFLAGS(CL,J).EQ.0) CYCLE
+                  !IF (CFLAGS(CL,J).EQ.0) CYCLE
                   IF (R(CL,I).GT.RCORE) CYCLE
                   DX=STARS(1,I)-STARS(1,J)
                   DY=STARS(2,I)-STARS(2,J)
@@ -407,11 +420,10 @@
              ITERFLAG=ITERFLAG + NBOUND(CL) - NBOUNDOLD(CL)
           END DO
           IF (SCREEN) THEN
-             PRINT *, "AVX", AVGVX
-             PRINT *, "AVY", AVGVY
-             PRINT *, "AVZ", AVGVZ
-
-             PRINT *,L,NBOUND(1:NCL) ," SB"
+             DO CL = 1,NCL
+                     PRINT *,L,NBOUND(CL) ," SB"
+                     PRINT*,'VCORE', VCORE(:,CL)
+             END DO
           ENDIF
           IF (ABS(ITERFLAG).LE.TOL.AND.(.NOT.ALLPARTS))
      &    THEN !If no no changes then consider all particles now
