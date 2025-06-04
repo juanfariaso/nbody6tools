@@ -20,7 +20,8 @@ def make_animation(folder,output=None,xy="xy",fps=10,dpi=None,boxsize=None,show_
     ##      - make it look better, but make sure is fast.
     #print("showbound",show_bound)
 
-    def update_line(num,line,bline,cline,folder,title=None,sn0=None,draw_orbit=False):
+    def update_line(num,line,bline,cline,folder,title=None,sn0=None,
+            daw_orbit=True):
             orbit = None
             if sn0 is None:
                 sn = read_snapshot(folder,num)

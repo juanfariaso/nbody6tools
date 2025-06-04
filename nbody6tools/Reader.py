@@ -93,7 +93,7 @@ def read_snapshot(folder,snapshot=0,time=None,inputfilename=inputFile,singlefile
         if not os.path.isfile( "%s/%s"%(folder,snapshotfile)):
             raise FileNotFoundError("Snapshot file %s/%s not found"%(folder,snapshotfile))
 
-    return Snapshot("%s/%s"%(folder,snapshotfile),inputfile,singlefile,snapshot=snapshot)
+    return Snapshot("%s/%s"%(folder,snapshotfile),inputfile,snapshot=snapshot,singlefile=singlefile)
 
 def read_binaries(folder,snapshot=0,inputfilename=inputFile, single_dict=False ):
     """
