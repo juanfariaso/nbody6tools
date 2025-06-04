@@ -676,23 +676,25 @@ class Snapshot(object):
     def __find_child_names(self,name):
         allnames = self.allparticles.name
         N = self.n 
-        n_true = N*10
+        true_name = N*10
         iname = []
         _i = 1
-        while n_true > N and len(iname) ==0:
-            n_true  = abs(name) - self.n*_i
-            if n_true < 0 :
-                n_true = N
+        #follow nbody6 convention to find the name of the primary
+        #iterate in case that primary is also a center of mass particle
+        while true_name > N and len(iname) ==0:
+            true_name  = abs(name) - self.n*_i
+            if true_name < 0 :
+                true_name = N
                 iname = []
                 break
-            iname = numpy.argwhere( allnames == n_true)
+            iname = numpy.argwhere( allnames == true_name)
             _i+=1
         if len(iname) == 0 :
-            n_true  = abs(name)
-            iname = numpy.argwhere( allnames == n_true)
+            true_name  = abs(name)
+            iname = numpy.argwhere( allnames == true_name)
             if len(iname)==0:
                 raise Exception('particle %s points to nothing'%n)
-        return n_true,iname.squeeze()
+        return true_name,iname.squeeze()
 
     def __find_all_childs(self,name):
         allnames = self.allparticles.name
@@ -727,27 +729,24 @@ class Snapshot(object):
     def unresolve_set(self,stars):
         """ 
         New version: under testing.
-        Resolve binaries from unresolved_set, based on names.
-        unresolved_set must be a set of stars taken from the same snapshot
-        object containing this function.
+        Unresolve binaries from a resolved set, based on names.
 
         Input:
         -----
-        unresolved_set : Particles object
-                         Must be a Particle object contained in this Snapshot.
+        stars : Particles object
+                Must be a Particle object contained in this Snapshot instance
 
 
         Output:
         ------
-        resolved_particles  
-        
+        unresolved_stars
         """
         parents,members = self.unresolved_pointers
         #find all parents names
         indexes = numpy.arange(len(parents))
         indexes = indexes[numpy.isin(members,stars.name)]
         parents = numpy.array(list(set( parents[indexes]) )) 
-        
+
         #find parents particles
         indexes = numpy.arange(len(self.allparticles))
         allp = self.allparticles.copy()
@@ -757,15 +756,28 @@ class Snapshot(object):
 
     def resolve_set(self,stars):
         """"
-        Unresolve regularized binaries, replace them by center of mass, using
-        name convention. Include multiples.
+        Resolve regularized binaries. The input stars contains stars from
+        the parent snapshot instance that contain center of mass particles
+        recognized by a name > snapshot.n
+        The function returns the same stellar set with the binary members
+        separated and no center of mass particles.
+
+        Input:
+        -----
+        stars : Particles object with center of mass particles
+                Must be a Particle object contained in this Snapshot instance
+
+
+        Output:
+        ------
+        resolved_stars : Particles object without center of mass particles
         """
         parents,members = self.unresolved_pointers
         #find all child names
         indexes = numpy.arange(len(parents))
         indexes = indexes[numpy.isin(parents,stars.name)]
         childs = numpy.array(list(set( members[indexes]) )) 
-        
+
         #find child particles
         indexes = numpy.arange(len(self.allparticles))
         allp = self.allparticles.copy()
