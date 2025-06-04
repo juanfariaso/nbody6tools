@@ -60,12 +60,14 @@ class Methods():
         """
         return (self.pot*self.mass).sum()/2. + (self.epot*self.mass).sum()
 
-    def kinetic_energy(self):
+    def kinetic_energy(self,sigma_threshold=None):
         """
         Returns kinetic energy of particles
         """
         ke = 0.5*(self.mass*(self.vx**2 + self.vy**2 +self.vz**2 )).sum()
-        cmv = numpy.array(self.center_of_mass_velocity())
+        cmv = numpy.array(
+                self.center_of_mass_velocity(sigma_threshold=sigma_threshold)
+                )
         ke-= self.mass.sum() * (cmv**2).sum() * 0.5 
         return ke
 
@@ -79,11 +81,16 @@ class Methods():
         else :
             return self.x.mean(),self.y.mean(),self.z.mean()
 
-
-    def center_of_mass_velocity(self):
-        mtot = self.mass.sum()
-        vx = (self.mass*self.vx).sum()/mtot
-        vy = (self.mass*self.vy).sum()/mtot
-        vz = (self.mass*self.vz).sum()/mtot
+    def center_of_mass_velocity(self,sigma_threshold=None):
+        if sigma_threshold:
+            vs = numpy.std(self.v)
+            msk = self.v < vs*sigma_threshold
+        else:
+            msk = numpy.full_like(self.mass,True,dtype=bool)
+        
+        mtot = self.mass[msk].sum()
+        vx = (self.mass[msk]*self.vx[msk]).sum()/mtot
+        vy = (self.mass[msk]*self.vy[msk]).sum()/mtot
+        vz = (self.mass[msk]*self.vz[msk]).sum()/mtot
         return vx,vy,vz
 
