@@ -161,8 +161,9 @@ class Snapshot(object):
     """
     # TODO: Update Snapshot class documentation
 
-    def __init__(self,snapshotfile,inputfile,singlefile=False,snapshot=1) :
+    def __init__(self,snapshotfile,inputfile,snapshot,singlefile=False) :
         self._snapshotfile = snapshotfile
+        self._inputfilename = inputfile
         self._inputfile = parse_inputfile(inputfile)
         self._singlefile = singlefile
         self.snapshot = snapshot
@@ -361,6 +362,20 @@ class Snapshot(object):
             mask = r>=Rcl 
             #result += numpy.nansum( -(particles.epot*particles.mass)[mask] )
             result += numpy.nansum( -(particles.epot*particles.mass)[mask] )
+        elif self.inputfile['KZ'][14] == 4:
+            Rcl = self.inputfile["AP"]
+            if particles.physical:
+                Rcl*=self.parameters["rbar"]
+            GMR = self.external_potential_at_point([0],[0],[Rcl],
+                                                   physical=particles.physical
+                                                   )[0]
+            r = numpy.sqrt(particles.x**2 + particles.y**2 + particles.z**2)
+            roR = r / Rcl
+            result = numpy.nansum(
+
+                    -GMR * (roR)/( 1+roR**2) * particles.mass
+
+                    )
 
         return result
 
@@ -550,6 +565,10 @@ class Snapshot(object):
                 #result = G*Mgas*((r/Rcore)**(2-krho) - 3.0 + krho)/Rcore/(2-krho)
                 result = G*Mgas*((r/Rcore)**(2-krho*0.5) - 3.0 + krho)/Rcore/(2-krho)
                 result[ r >= Rcore ] = - G * Mgas / r[r >= Rcore]
+            elif self.inputfile["KZ"][14] == 4 and Mgas > 0 : #TODO implement other external potentials
+                r_over_a_squared = (x**2 + y**2 + z**2 )/ Rcore 
+                result = -G*Mgas/Rcore * (1+r_over_a_squared)**(-0.5)
+                
             else:
                 result = x*0.0
         else:
@@ -887,7 +906,7 @@ class Particles(Methods):
     This object is not supposed to be used by itself, but
     wrapped by the Snapshot object.
     """
-    def __init__(self,stars_dict,center=[0.,0.,0.],center_velocity = [0,0,0],
+    def __init__(self,stars_dict,center=[0.,0.,0.],center_velocity = [0.,0.,0.],
                  physical = False):
         self.__n = len(stars_dict["name"])  if hasattr(stars_dict["name"],"__len__" ) else 1  #must be first parameter to be setted
         self.__data = stars_dict
@@ -953,7 +972,7 @@ class Particles(Methods):
             self.vz   *= parameters["vstar"]
             G = 4.3020077853E-3
             escale = G*parameters["zmbar"]/parameters["rbar"]
-            self.pot*=escale
+            self.pot *= escale
             self.epot*=escale
             self.center *= parameters["rbar"]
             self.__physical = True
@@ -1065,7 +1084,7 @@ class Particles(Methods):
         if particle_attribute and len(self.__dict__ ) != 0  :
             vlen = 1 if not hasattr(value,"__len__") else len(value)
             if vlen != len(self) :
-                raise ValueError("length of value  must be the same as the number of particles" )
+                raise ValueError( "length of value (%i) must be the same as the number of particles (%i)"%(vlen,len(self)) )
         self.__dict__[key] = value
         if particle_attribute :
             self.__data[key] = value
@@ -1115,6 +1134,10 @@ class Particles(Methods):
 
     def available_attributes(self):
         return list(self.__data.keys() )
+
+    def pop(self, par ):
+        self.__data.pop(par)
+
 
 class Particle(object):
     def __init__(self,star_dict,physical=1):
