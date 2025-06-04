@@ -20,7 +20,7 @@ snwbl = Extension(name = 'nbody6tools.snowballing',
                  extra_compile_args = ['-O3'],
                 )
 
-dependencies = ["scipy","h5py","matplotlib","tqdm"]
+dependencies = ["scipy","h5py","matplotlib","tqdm",'numpy']
 
 setup(
      name='nbody6tools',  
