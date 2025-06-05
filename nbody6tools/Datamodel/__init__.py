@@ -754,7 +754,7 @@ class Snapshot(object):
         #result.set_center(center)
         return result
 
-    def resolve_set(self,stars):
+    def resolve_set(self,stars,split_set=False):
         """"
         Resolve regularized binaries. The input stars contains stars from
         the parent snapshot instance that contain center of mass particles
@@ -781,9 +781,26 @@ class Snapshot(object):
         #find child particles
         indexes = numpy.arange(len(self.allparticles))
         allp = self.allparticles.copy()
-        result = allp[numpy.isin(allp.name,childs)]
+        resolved_particles = allp[numpy.isin(allp.name,childs)]
         #result.set_center(center)
-        return result
+        if not split_set:
+            return resolved_particles
+        else:
+            # Identify primaries and secondaries
+            n = self.n
+            primary_names = (stars.name - n)[stars.name > n]
+            singles_names = stars.name[stars.name <= n]
+
+            main_indexes = numpy.arange(len(self.stars))
+            iprim = main_indexes[numpy.isin(self.stars.name, primary_names)]
+            ising = main_indexes[numpy.isin(self.stars.name, singles_names)]
+
+            singles = self.stars[ising]
+            primaries = self.stars[iprim]
+            secondaries = self.stars[iprim + 1]
+
+            return singles, primaries, secondaries
+
 
     def to_physical(self):
         "Make sure stars are in physical units. Transform if not."
